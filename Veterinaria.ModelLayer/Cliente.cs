@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Veterinaria.DataLayer.Entities;
+using Veterinaria.DataLayer.QueryBuilder;
 
-namespace Veterinaria.DataLayer.Entities
+namespace Veterinaria.ModelLayer
 {
     /// <summary>
     /// Modelo Cliente - Representa la tabla 'Clientes' en la base de datos
@@ -18,7 +18,7 @@ namespace Veterinaria.DataLayer.Entities
         };
         protected override bool Timestamps { get; set; } = true;
 
-        // Propiedades pÃºblicas
+        // Propiedades públicas
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string Apellido { get; set; } = string.Empty;
@@ -39,7 +39,7 @@ namespace Veterinaria.DataLayer.Entities
             Email = email;
         }
 
-        // MÃ©todos de conveniencia
+        // Métodos de conveniencia
         public static List<Cliente> ClientesActivos()
         {
             return Where("activo", true).Get().Cast<Cliente>().ToList();
@@ -52,7 +52,7 @@ namespace Veterinaria.DataLayer.Entities
 
         public static List<Cliente> BuscarPorNombre(string nombre)
         {
-            return Where("nombre", QueryBuilder.SqlOperator.Like, $"%{nombre}%")
+            return Where("nombre", SqlOperator.Like, $"%{nombre}%")
                    .Get().Cast<Cliente>().ToList();
         }
 
@@ -61,13 +61,13 @@ namespace Veterinaria.DataLayer.Entities
             return $"{Nombre} {Apellido}";
         }
 
-        // RelaciÃ³n con Mascotas
+        // Relación con Mascotas
         public List<Mascota> GetMascotas()
         {
             return Mascota.Where("cliente_id", Id).Get().Cast<Mascota>().ToList();
         }
 
-        // RelaciÃ³n con Ventas
+        // Relación con Ventas
         public List<Venta> GetVentas()
         {
             return Venta.Where("cliente_id", Id).Get().Cast<Venta>().ToList();

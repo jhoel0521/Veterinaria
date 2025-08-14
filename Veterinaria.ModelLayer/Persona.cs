@@ -1,7 +1,6 @@
 using System;
-using Veterinaria.DataLayer.Entities;
 
-namespace Veterinaria.DataLayer.Entities
+namespace Veterinaria.ModelLayer
 {
     /// <summary>
     /// Modelo Persona - Equivalente a un modelo Eloquent en Laravel
@@ -9,7 +8,7 @@ namespace Veterinaria.DataLayer.Entities
     /// </summary>
     public class Persona : Model<Persona>
     {
-        // ConfiguraciÃ³n del modelo - Equivalente a las propiedades protected de PHP
+        // Configuración del modelo - Equivalente a las propiedades protected de PHP
         protected override string Table { get; set; } = "Persona";
         protected override string PrimaryKey { get; set; } = "id";
         protected override string[] Fillable { get; set; } = 
@@ -19,7 +18,7 @@ namespace Veterinaria.DataLayer.Entities
         };
         protected override bool Timestamps { get; set; } = true;
 
-        // Propiedades pÃºblicas que mapean a las columnas de la base de datos
+        // Propiedades públicas que mapean a las columnas de la base de datos
         public int Id { get; set; }
         public string Nombre { get; set; } = string.Empty;
         public string Apellido { get; set; } = string.Empty;
@@ -44,7 +43,7 @@ namespace Veterinaria.DataLayer.Entities
             Contrasena = contrasena;
         }
 
-        // MÃ©todos de conveniencia especÃ­ficos para Persona
+        // Métodos de conveniencia específicos para Persona
         public static Persona? ValidarLogin(string usuario, string contrasena)
         {
             var user = Where("usuario", usuario)

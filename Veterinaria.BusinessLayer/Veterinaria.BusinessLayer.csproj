@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Veterinaria.DataLayer\Veterinaria.DataLayer.csproj" />
+    <ProjectReference Include="..\Veterinaria.ModelLayer\Veterinaria.ModelLayer.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Veterinaria.DataLayer\Veterinaria.DataLayer.csproj" />
+  </ItemGroup>
+
 </Project>

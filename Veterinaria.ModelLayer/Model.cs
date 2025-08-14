@@ -2,12 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Veterinaria.DataLayer.Database;
+using Veterinaria.DataLayer.QueryBuilder;
 
-namespace Veterinaria.DataLayer.Entities
+namespace Veterinaria.ModelLayer
 {
     /// <summary>
     /// Clase Model base - Equivalente a Model.php
-    /// Implementa el patr√≥n Active Record como en Laravel Eloquent
+    /// Implementa el patrÛn Active Record como en Laravel Eloquent
     /// </summary>
     public abstract class Model<T> where T : Model<T>, new()
     {
@@ -26,7 +27,7 @@ namespace Veterinaria.DataLayer.Entities
 
         public Model()
         {
-            // Si no se especifica tabla, usar el nombre de la clase en min√∫scula + 's'
+            // Si no se especifica tabla, usar el nombre de la clase en min˙scula + 's'
             if (string.IsNullOrEmpty(Table))
             {
                 Table = typeof(T).Name.ToLower() + "s";
@@ -80,7 +81,7 @@ namespace Veterinaria.DataLayer.Entities
         /// </summary>
         public T Save()
         {
-            var db = Database.Database.GetInstance();
+            var db = Database.GetInstance();
 
             if (_exists)
             {
@@ -94,7 +95,7 @@ namespace Veterinaria.DataLayer.Entities
         /// Realiza INSERT en la base de datos
         /// Equivalente a performInsert() en PHP
         /// </summary>
-        private T PerformInsert(Database.Database db)
+        private T PerformInsert(Database db)
         {
             var attributes = GetAttributesForSave();
 
@@ -128,7 +129,7 @@ namespace Veterinaria.DataLayer.Entities
         /// Realiza UPDATE en la base de datos
         /// Equivalente a performUpdate() en PHP
         /// </summary>
-        private T PerformUpdate(Database.Database db)
+        private T PerformUpdate(Database db)
         {
             var attributes = GetAttributesForSave();
 
@@ -168,7 +169,7 @@ namespace Veterinaria.DataLayer.Entities
 
         private bool PerformForceDelete()
         {
-            var db = Database.Database.GetInstance();
+            var db = Database.GetInstance();
             var sql = $"DELETE FROM {Table} WHERE {PrimaryKey} = @id";
             var parameters = new Dictionary<string, object> { { "@id", GetKey()! } };
 
@@ -215,36 +216,34 @@ namespace Veterinaria.DataLayer.Entities
             return attributes;
         }
 
-        // M√©todos est√°ticos equivalentes a los de PHP
-        public static QueryBuilder.QueryBuilder Query()
+        // MÈtodos est·ticos equivalentes a los de PHP
+        public static QueryBuilder Query()
         {
             var instance = new T();
-            return Database.Database.GetInstance().Table(instance.Table, typeof(T));
+            return Database.GetInstance().Table(instance.Table, typeof(T));
         }
 
-        public static QueryBuilder.QueryBuilder Where(string column, object operatorOrValue, object? value = null)
+        public static QueryBuilder Where(string column, object operatorOrValue, object? value = null)
         {
             // verificaremos 2 si operatorOrValue es un SqlOperator o un valor
             if (operatorOrValue is string opStr)
             {
-
-                var sqlOp = QueryBuilder.SqlOperatorExtensions.ToStringSql(opStr);
+                var sqlOp = SqlOperatorExtensions.ToStringSql(opStr);
                 if (sqlOp.HasValue)
                     return Query().Where(column, sqlOp.Value, value);
                 if (value == null)
-                    return Query().Where(column, QueryBuilder.SqlOperator.Equal, operatorOrValue);
+                    return Query().Where(column, SqlOperator.Equal, operatorOrValue);
 
             }
-            else if (operatorOrValue is QueryBuilder.SqlOperator sqlOp)
+            else if (operatorOrValue is SqlOperator sqlOp)
             {
                 return Query().Where(column, sqlOp, value);
             }
             else if (value == null)
             {
-                return Query().Where(column, QueryBuilder.SqlOperator.Equal, operatorOrValue);
+                return Query().Where(column, SqlOperator.Equal, operatorOrValue);
             }
-            throw new ArgumentException("Par√°metros inv√°lidos para Where");
-
+            throw new ArgumentException("Par·metros inv·lidos para Where");
         }
 
         public static T? Find(object id)
@@ -269,17 +268,17 @@ namespace Veterinaria.DataLayer.Entities
             return Query().Count();
         }
 
-        public static QueryBuilder.QueryBuilder OrderBy(string column, string direction = "ASC")
+        public static QueryBuilder OrderBy(string column, string direction = "ASC")
         {
             return Query().OrderBy(column, direction);
         }
 
-        public static QueryBuilder.QueryBuilder Limit(int limit)
+        public static QueryBuilder Limit(int limit)
         {
             return Query().Limit(limit);
         }
 
-        // M√©todos auxiliares
+        // MÈtodos auxiliares
         private void SetProperty(string name, object? value)
         {
             var property = typeof(T).GetProperty(name,

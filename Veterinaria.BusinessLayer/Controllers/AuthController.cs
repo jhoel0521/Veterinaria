@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Veterinaria.DataLayer.Entities;
+using Veterinaria.ModelLayer;
 
 namespace Veterinaria.BusinessLayer.Controllers
 {
