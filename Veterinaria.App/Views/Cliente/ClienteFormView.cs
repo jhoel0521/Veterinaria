@@ -9,11 +9,11 @@ namespace Veterinaria.App.Views.Cliente
 {
     /// <summary>
     /// Vista de formulario para crear/editar clientes
-    /// Maneja tanto creación como edición según el modo configurado
+    /// Maneja tanto creaciÃ³n como ediciÃ³n segÃºn el modo configurado
     /// </summary>
     public partial class ClienteFormView : UserControl
     {
-        // Eventos para comunicación con el Dashboard
+        // Eventos para comunicaciÃ³n con el Dashboard
         public event Action? ClienteGuardado;
         public event Action? CancelarOperacion;
 
@@ -63,7 +63,7 @@ namespace Veterinaria.App.Views.Cliente
             btnGuardar.Click += BtnGuardar_Click;
             btnCancelar.Click += BtnCancelar_Click;
 
-            // Validación en tiempo real
+            // ValidaciÃ³n en tiempo real
             txtNombre.TextChanged += ValidarFormulario;
             txtApellido.TextChanged += ValidarFormulario;
             txtEmail.TextChanged += ValidarFormulario;
@@ -78,14 +78,14 @@ namespace Veterinaria.App.Views.Cliente
         }
 
         /// <summary>
-        /// Configura la validación visual de los campos
+        /// Configura la validaciÃ³n visual de los campos
         /// </summary>
         private void ConfigurarValidacion()
         {
             // Configurar placeholder text para campos opcionales
             txtTelefono.PlaceholderText = "Ej: +56 9 1234 5678";
             txtEmail.PlaceholderText = "cliente@email.com";
-            txtDireccion.PlaceholderText = "Dirección completa del cliente...";
+            txtDireccion.PlaceholderText = "DirecciÃ³n completa del cliente...";
 
             // Validar inicialmente
             ValidarFormulario(null, EventArgs.Empty);
@@ -121,7 +121,7 @@ namespace Veterinaria.App.Views.Cliente
         }
 
         /// <summary>
-        /// Valida el formulario y habilita/deshabilita el botón guardar
+        /// Valida el formulario y habilita/deshabilita el botÃ³n guardar
         /// </summary>
         private void ValidarFormulario(object? sender, EventArgs e)
         {
@@ -202,8 +202,8 @@ namespace Veterinaria.App.Views.Cliente
             if (HaycambiosPendientes())
             {
                 var result = MessageBox.Show(
-                    "¿Está seguro que desea cancelar? Los cambios no guardados se perderán.",
-                    "Confirmar Cancelación",
+                    "Â¿EstÃ¡ seguro que desea cancelar? Los cambios no guardados se perderÃ¡n.",
+                    "Confirmar CancelaciÃ³n",
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Question);
 
@@ -234,7 +234,7 @@ namespace Veterinaria.App.Views.Cliente
         {
             if (e.KeyCode == Keys.Enter)
             {
-                // Mover al siguiente campo o guardar si es el último
+                // Mover al siguiente campo o guardar si es el Ãºltimo
                 if (sender == txtNombre)
                     txtApellido.Focus();
                 else if (sender == txtApellido)
@@ -250,7 +250,7 @@ namespace Veterinaria.App.Views.Cliente
 
         private void TxtEmail_Leave(object? sender, EventArgs e)
         {
-            // Convertir email a minúsculas automáticamente
+            // Convertir email a minÃºsculas automÃ¡ticamente
             if (!string.IsNullOrWhiteSpace(txtEmail.Text))
             {
                 txtEmail.Text = txtEmail.Text.Trim().ToLower();
@@ -270,7 +270,7 @@ namespace Veterinaria.App.Views.Cliente
             {
                 _guardando = true;
                 btnGuardar.Enabled = false;
-                btnGuardar.Text = "?? Guardando...";
+                btnGuardar.Text = "Guardando...";
 
                 var nombre = txtNombre.Text.Trim();
                 var apellido = txtApellido.Text.Trim();
@@ -295,7 +295,7 @@ namespace Veterinaria.App.Views.Cliente
 
                 if (resultado.success)
                 {
-                    MessageBox.Show(resultado.message, "Éxito",
+                    MessageBox.Show(resultado.message, "Ã‰xito",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                     ClienteGuardado?.Invoke();
@@ -315,7 +315,7 @@ namespace Veterinaria.App.Views.Cliente
             {
                 _guardando = false;
                 btnGuardar.Enabled = true;
-                btnGuardar.Text = "?? Guardar";
+                btnGuardar.Text = "Guardar";
                 ValidarFormulario(null, EventArgs.Empty);
             }
         }
@@ -345,7 +345,7 @@ namespace Veterinaria.App.Views.Cliente
         }
 
         /// <summary>
-        /// Obtiene el cliente actual (para edición)
+        /// Obtiene el cliente actual (para ediciÃ³n)
         /// </summary>
         public ModelLayer.Cliente? GetClienteActual()
         {
@@ -353,7 +353,7 @@ namespace Veterinaria.App.Views.Cliente
         }
 
         /// <summary>
-        /// Indica si está en modo edición
+        /// Indica si estÃ¡ en modo ediciÃ³n
         /// </summary>
         public bool EsModoEdicion => _modoEdicion;
     }

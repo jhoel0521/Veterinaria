@@ -8,7 +8,7 @@ namespace Veterinaria.ModelLayer
 {
     /// <summary>
     /// Clase Model base - Equivalente a Model.php
-    /// Implementa el patr�n Active Record como en Laravel Eloquent
+    /// Implementa el patrón Active Record como en Laravel Eloquent
     /// </summary>
     public abstract class Model<T> where T : Model<T>, new()
     {
@@ -27,7 +27,7 @@ namespace Veterinaria.ModelLayer
 
         public Model()
         {
-            // Si no se especifica tabla, usar el nombre de la clase en min�scula + 's'
+            // Si no se especifica tabla, usar el nombre de la clase en minúscula + 's'
             if (string.IsNullOrEmpty(Table))
             {
                 Table = typeof(T).Name.ToLower() + "s";
@@ -219,7 +219,7 @@ namespace Veterinaria.ModelLayer
             return attributes;
         }
 
-        // M�todos est�ticos equivalentes a los de PHP
+        // Métodos estáticos equivalentes a los de PHP
         public static QueryBuilder Query()
         {
             var instance = new T();
@@ -246,7 +246,7 @@ namespace Veterinaria.ModelLayer
             {
                 return Query().Where(column, SqlOperator.Equal, operatorOrValue);
             }
-            throw new ArgumentException("Par�metros inv�lidos para Where");
+            throw new ArgumentException("Parámetros inválidos para Where");
         }
 
         public static T? Find(object id)
@@ -281,7 +281,7 @@ namespace Veterinaria.ModelLayer
             return Query().Limit(limit);
         }
 
-        // M�todos auxiliares
+        // Métodos auxiliares
         private void SetProperty(string name, object? value)
         {
             var property = typeof(T).GetProperty(name,

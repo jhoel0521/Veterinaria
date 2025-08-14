@@ -17,14 +17,14 @@ namespace Veterinaria.App
                 // see https://aka.ms/applicationconfiguration.
                 ApplicationConfiguration.Initialize();
 
-                // Inicializar configuraci髇 (similar a Program.cs en MVC)
+                // Inicializar configuraci贸n (similar a Program.cs en MVC)
                 AppConfiguration.Initialize();
 
-                // Configurar la base de datos con el connection string del archivo de configuraci髇
+                // Configurar la base de datos con el connection string del archivo de configuraci贸n
                 var connectionString = AppConfiguration.GetConnectionString();
                 Database.Configure(connectionString);
 
-                Console.WriteLine("[INFO] Aplicaci髇 iniciada correctamente");
+                Console.WriteLine("[INFO] Aplicaci贸n iniciada correctamente");
                 Console.WriteLine($"[INFO] Connection String configurado: {connectionString.Substring(0, Math.Min(50, connectionString.Length))}...");
 
                 // Iniciar con el formulario de Login
@@ -33,8 +33,8 @@ namespace Veterinaria.App
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    $"Error fatal al inicializar la aplicaci髇:\n\n{ex.Message}\n\nDetalles:\n{ex}", 
-                    "Error de Inicializaci髇", 
+                    $"Error fatal al inicializar la aplicaci贸n:\n\n{ex.Message}\n\nDetalles:\n{ex}", 
+                    "Error de Inicializaci贸n", 
                     MessageBoxButtons.OK, 
                     MessageBoxIcon.Error);
                 

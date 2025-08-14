@@ -3,12 +3,12 @@ namespace Veterinaria.App.Views.Cliente
     partial class ClienteFormView
     {
         /// <summary> 
-        /// Variable del diseñador necesaria.
+        /// Variable del diseÃ±ador necesaria.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
         /// <summary> 
-        /// Limpiar los recursos que se estén usando.
+        /// Limpiar los recursos que se estÃ¡n usando.
         /// </summary>
         /// <param name="disposing">true si los recursos administrados se deben desechar; false en caso contrario.</param>
         protected override void Dispose(bool disposing)
@@ -20,11 +20,11 @@ namespace Veterinaria.App.Views.Cliente
             base.Dispose(disposing);
         }
 
-        #region Código generado por el Diseñador de componentes
+        #region CÃ³digo generado por el DiseÃ±ador de componentes
 
         /// <summary> 
-        /// Método necesario para admitir el Diseñador. No se puede modificar
-        /// el contenido de este método con el editor de código.
+        /// MÃ©todo necesario para admitir el DiseÃ±ador. No se puede modificar
+        /// el contenido de este mÃ©todo con el editor de cÃ³digo.
         /// </summary>
         private void InitializeComponent()
         {
@@ -142,7 +142,7 @@ namespace Veterinaria.App.Views.Cliente
             this.lblTelefono.Name = "lblTelefono";
             this.lblTelefono.Size = new Size(64, 20);
             this.lblTelefono.TabIndex = 4;
-            this.lblTelefono.Text = "Teléfono";
+            this.lblTelefono.Text = "TelÃ©fono";
             // 
             // txtTelefono
             // 
@@ -182,7 +182,7 @@ namespace Veterinaria.App.Views.Cliente
             this.lblDireccion.Name = "lblDireccion";
             this.lblDireccion.Size = new Size(72, 20);
             this.lblDireccion.TabIndex = 8;
-            this.lblDireccion.Text = "Dirección";
+            this.lblDireccion.Text = "DirecciÃ³n";
             // 
             // txtDireccion
             // 
@@ -233,7 +233,7 @@ namespace Veterinaria.App.Views.Cliente
             this.btnGuardar.Name = "btnGuardar";
             this.btnGuardar.Size = new Size(120, 40);
             this.btnGuardar.TabIndex = 0;
-            this.btnGuardar.Text = "?? Guardar";
+            this.btnGuardar.Text = "Guardar";
             this.btnGuardar.UseVisualStyleBackColor = false;
             // 
             // btnCancelar
@@ -248,7 +248,7 @@ namespace Veterinaria.App.Views.Cliente
             this.btnCancelar.Name = "btnCancelar";
             this.btnCancelar.Size = new Size(100, 40);
             this.btnCancelar.TabIndex = 1;
-            this.btnCancelar.Text = "? Cancelar";
+            this.btnCancelar.Text = "Cancelar";
             this.btnCancelar.UseVisualStyleBackColor = false;
             // 
             // lblInfo

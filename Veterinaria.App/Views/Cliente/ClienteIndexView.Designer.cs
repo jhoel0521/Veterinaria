@@ -3,12 +3,12 @@ namespace Veterinaria.App.Views.Cliente
     partial class ClienteIndexView
     {
         /// <summary> 
-        /// Variable del diseñador necesaria.
+        /// Variable del diseÃ±ador necesaria.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
 
         /// <summary> 
-        /// Limpiar los recursos que se estén usando.
+        /// Limpiar los recursos que se estÃ¡n usando.
         /// </summary>
         /// <param name="disposing">true si los recursos administrados se deben desechar; false en caso contrario.</param>
         protected override void Dispose(bool disposing)
@@ -20,11 +20,11 @@ namespace Veterinaria.App.Views.Cliente
             base.Dispose(disposing);
         }
 
-        #region Código generado por el Diseñador de componentes
+        #region CÃ³digo generado por el DiseÃ±ador de componentes
 
         /// <summary> 
-        /// Método necesario para admitir el Diseñador. No se puede modificar
-        /// el contenido de este método con el editor de código.
+        /// MÃ©todo necesario para admitir el DiseÃ±ador. No se puede modificar
+        /// el contenido de este mÃ©todo con el editor de cÃ³digo.
         /// </summary>
         private void InitializeComponent()
         {
@@ -67,7 +67,7 @@ namespace Veterinaria.App.Views.Cliente
             this.lblTitle.Name = "lblTitle";
             this.lblTitle.Size = new Size(186, 32);
             this.lblTitle.TabIndex = 0;
-            this.lblTitle.Text = "Gestión Clientes";
+            this.lblTitle.Text = "GestiÃ³n Clientes";
             // 
             // btnNuevoCliente
             // 
@@ -81,7 +81,7 @@ namespace Veterinaria.App.Views.Cliente
             this.btnNuevoCliente.Name = "btnNuevoCliente";
             this.btnNuevoCliente.Size = new Size(130, 35);
             this.btnNuevoCliente.TabIndex = 1;
-            this.btnNuevoCliente.Text = "? Nuevo Cliente";
+            this.btnNuevoCliente.Text = "Nuevo Cliente";
             this.btnNuevoCliente.UseVisualStyleBackColor = false;
             // 
             // panelFilters
@@ -129,7 +129,7 @@ namespace Veterinaria.App.Views.Cliente
             this.btnBuscar.Name = "btnBuscar";
             this.btnBuscar.Size = new Size(70, 25);
             this.btnBuscar.TabIndex = 2;
-            this.btnBuscar.Text = "?? Buscar";
+            this.btnBuscar.Text = "Buscar";
             this.btnBuscar.UseVisualStyleBackColor = false;
             // 
             // btnLimpiar
@@ -143,7 +143,7 @@ namespace Veterinaria.App.Views.Cliente
             this.btnLimpiar.Name = "btnLimpiar";
             this.btnLimpiar.Size = new Size(70, 25);
             this.btnLimpiar.TabIndex = 3;
-            this.btnLimpiar.Text = "? Limpiar";
+            this.btnLimpiar.Text = "Limpiar";
             this.btnLimpiar.UseVisualStyleBackColor = false;
             // 
             // panelActions
@@ -169,7 +169,7 @@ namespace Veterinaria.App.Views.Cliente
             this.btnActualizar.Name = "btnActualizar";
             this.btnActualizar.Size = new Size(90, 25);
             this.btnActualizar.TabIndex = 1;
-            this.btnActualizar.Text = "?? Actualizar";
+            this.btnActualizar.Text = "Actualizar";
             this.btnActualizar.UseVisualStyleBackColor = false;
             // 
             // lblResultados

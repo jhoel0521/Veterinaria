@@ -10,12 +10,12 @@ using Veterinaria.ModelLayer;
 namespace Veterinaria.App.Views.Cliente
 {
     /// <summary>
-    /// Vista principal (Index) para gestión de clientes
-    /// Muestra lista de clientes con opciones de búsqueda, crear, editar y eliminar
+    /// Vista principal (Index) para gestiÃ³n de clientes
+    /// Muestra lista de clientes con opciones de bÃºsqueda, crear, editar y eliminar
     /// </summary>
     public partial class ClienteIndexView : UserControl
     {
-        // Eventos para comunicación con el Dashboard
+        // Eventos para comunicaciÃ³n con el Dashboard
         public event Action<int>? EditarCliente;
         public event Action? NuevoCliente;
         public event Action<int>? VerCliente;
@@ -43,7 +43,7 @@ namespace Veterinaria.App.Views.Cliente
             btnLimpiar.Click += BtnLimpiar_Click;
             btnActualizar.Click += BtnActualizar_Click;
 
-            // Eventos del TextBox de búsqueda
+            // Eventos del TextBox de bÃºsqueda
             txtBuscar.KeyDown += TxtBuscar_KeyDown;
 
             // Eventos del DataGridView
@@ -87,21 +87,21 @@ namespace Veterinaria.App.Views.Cliente
                 ReadOnly = true
             });
 
-            // Columna Teléfono
+            // Columna TelÃ©fono
             dgvClientes.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Telefono",
-                HeaderText = "Teléfono",
+                HeaderText = "TelÃ©fono",
                 DataPropertyName = "Telefono",
                 Width = 120,
                 ReadOnly = true
             });
 
-            // Columna Dirección
+            // Columna DirecciÃ³n
             dgvClientes.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "Direccion",
-                HeaderText = "Dirección",
+                HeaderText = "DirecciÃ³n",
                 DataPropertyName = "Direccion",
                 Width = 250,
                 ReadOnly = true
@@ -127,7 +127,7 @@ namespace Veterinaria.App.Views.Cliente
             };
             dgvClientes.Columns.Add(columnAcciones);
 
-            // Evento para manejar clicks en botones de acción
+            // Evento para manejar clicks en botones de acciÃ³n
             dgvClientes.CellContentClick += DgvClientes_CellContentClick;
         }
 
@@ -142,7 +142,7 @@ namespace Veterinaria.App.Views.Cliente
             {
                 _isLoading = true;
                 btnActualizar.Enabled = false;
-                btnActualizar.Text = "?? Cargando...";
+                btnActualizar.Text = "Cargando...";
 
                 await Task.Run(() =>
                 {
@@ -155,8 +155,8 @@ namespace Veterinaria.App.Views.Cliente
                     Id = c.Id,
                     NombreCompleto = c.NombreCompleto(),
                     Email = c.Email ?? "Sin email",
-                    Telefono = c.Telefono ?? "Sin teléfono",
-                    Direccion = c.Direccion ?? "Sin dirección",
+                    Telefono = c.Telefono ?? "Sin telÃ©fono",
+                    Direccion = c.Direccion ?? "Sin direcciÃ³n",
                     EstadoTexto = c.Activo ? "Activo" : "Inactivo",
                     Activo = c.Activo
                 }).ToList();
@@ -173,12 +173,12 @@ namespace Veterinaria.App.Views.Cliente
             {
                 _isLoading = false;
                 btnActualizar.Enabled = true;
-                btnActualizar.Text = "?? Actualizar";
+                btnActualizar.Text = "Actualizar";
             }
         }
 
         /// <summary>
-        /// Busca clientes según el texto ingresado
+        /// Busca clientes segÃºn el texto ingresado
         /// </summary>
         private async void BuscarClientes()
         {
@@ -188,7 +188,7 @@ namespace Veterinaria.App.Views.Cliente
             {
                 _isLoading = true;
                 btnBuscar.Enabled = false;
-                btnBuscar.Text = "?? Buscando...";
+                btnBuscar.Text = "Buscando...";
 
                 var textoBusqueda = txtBuscar.Text.Trim();
 
@@ -202,8 +202,8 @@ namespace Veterinaria.App.Views.Cliente
                     Id = c.Id,
                     NombreCompleto = c.NombreCompleto(),
                     Email = c.Email ?? "Sin email",
-                    Telefono = c.Telefono ?? "Sin teléfono",
-                    Direccion = c.Direccion ?? "Sin dirección",
+                    Telefono = c.Telefono ?? "Sin telÃ©fono",
+                    Direccion = c.Direccion ?? "Sin direcciÃ³n",
                     EstadoTexto = c.Activo ? "Activo" : "Inactivo",
                     Activo = c.Activo
                 }).ToList();
@@ -220,7 +220,7 @@ namespace Veterinaria.App.Views.Cliente
             {
                 _isLoading = false;
                 btnBuscar.Enabled = true;
-                btnBuscar.Text = "?? Buscar";
+                btnBuscar.Text = "Buscar";
             }
         }
 
@@ -303,7 +303,7 @@ namespace Veterinaria.App.Views.Cliente
                 {
                     var clienteId = Convert.ToInt32(dgvClientes.Rows[e.RowIndex].Cells["Id"].Value);
                     
-                    // Mostrar menú contextual con opciones
+                    // Mostrar menÃº contextual con opciones
                     MostrarMenuAcciones(clienteId);
                 }
             }
@@ -312,7 +312,7 @@ namespace Veterinaria.App.Views.Cliente
         #endregion
 
         /// <summary>
-        /// Muestra el menú de acciones para un cliente
+        /// Muestra el menÃº de acciones para un cliente
         /// </summary>
         private void MostrarMenuAcciones(int clienteId)
         {
@@ -336,12 +336,12 @@ namespace Veterinaria.App.Views.Cliente
             eliminarItem.ForeColor = Color.FromArgb(231, 76, 60);
             menu.Items.Add(eliminarItem);
 
-            // Mostrar el menú en la posición del cursor
+            // Mostrar el menÃº en la posiciÃ³n del cursor
             menu.Show(Cursor.Position);
         }
 
         /// <summary>
-        /// Método público para refrescar la vista (llamado desde el Dashboard)
+        /// MÃ©todo pÃºblico para refrescar la vista (llamado desde el Dashboard)
         /// </summary>
         public void RefrescarDatos()
         {
