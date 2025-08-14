@@ -248,7 +248,7 @@ namespace Veterinaria.App.Views.Cliente
             this.btnCancelar.Name = "btnCancelar";
             this.btnCancelar.Size = new Size(100, 40);
             this.btnCancelar.TabIndex = 1;
-            this.btnCancelar.Text = "?? Cancelar";
+            this.btnCancelar.Text = "? Cancelar";
             this.btnCancelar.UseVisualStyleBackColor = false;
             // 
             // lblInfo

@@ -198,7 +198,7 @@ namespace Veterinaria.App.Navigation
         /// </summary>
         private Label CreateModuleLabel(string module)
         {
-            return new Label
+            var label = new Label
             {
                 Text = module,
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
@@ -207,6 +207,11 @@ namespace Veterinaria.App.Navigation
                 Cursor = Cursors.Hand,
                 Tag = new { Module = module, ViewType = ViewType.Index }
             };
+
+            // Agregar evento click
+            label.Click += BreadcrumbLabel_Click;
+            
+            return label;
         }
 
         /// <summary>
@@ -254,9 +259,26 @@ namespace Veterinaria.App.Navigation
         /// </summary>
         private void BreadcrumbLabel_Click(object? sender, EventArgs e)
         {
-            if (sender is Label label && label.Tag is BreadcrumbItem breadcrumb)
+            if (sender is Label label && label.Tag != null)
             {
-                NavigationRequested?.Invoke(breadcrumb.Module, breadcrumb.ViewType, breadcrumb.Data);
+                // Manejar tanto BreadcrumbItem como objetos anónimos
+                if (label.Tag is BreadcrumbItem breadcrumb)
+                {
+                    NavigationRequested?.Invoke(breadcrumb.Module, breadcrumb.ViewType, breadcrumb.Data);
+                }
+                else if (label.Tag is { } tagObj)
+                {
+                    // Usar reflexión para objetos anónimos
+                    var moduleProperty = tagObj.GetType().GetProperty("Module");
+                    var viewTypeProperty = tagObj.GetType().GetProperty("ViewType");
+                    
+                    if (moduleProperty != null && viewTypeProperty != null)
+                    {
+                        var module = moduleProperty.GetValue(tagObj)?.ToString() ?? "";
+                        var viewType = (ViewType)(viewTypeProperty.GetValue(tagObj) ?? ViewType.Index);
+                        NavigationRequested?.Invoke(module, viewType, null);
+                    }
+                }
             }
         }
 
@@ -282,7 +304,7 @@ namespace Veterinaria.App.Navigation
         }
 
         /// <summary>
-        /// Obtiene el breadcrumb activo actual
+        /// Obtiene el breadcrumb activo current
         /// </summary>
         public BreadcrumbItem? GetActiveBreadcrumb()
         {

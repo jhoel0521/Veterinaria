@@ -171,18 +171,58 @@ namespace Veterinaria.App
                 case ViewType.Index:
                     var indexView = new ClienteIndexView();
                     
-                    // Configurar eventos
+                    // Configurar eventos usando una lambda que mantenga la referencia
                     indexView.NuevoCliente += () => 
-                        _navigationManager?.NavigateTo("Cliente", ViewType.Create, new ClienteFormView(), null);
+                    {
+                        var createView = new ClienteFormView();
+                        createView.ConfigurarParaNuevo();
+                        
+                        // Configurar eventos del formulario
+                        createView.ClienteGuardado += () =>
+                        {
+                            // Crear nueva instancia del índice y navegar
+                            var newIndexView = new ClienteIndexView();
+                            ConfigurarEventosClienteIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        createView.CancelarOperacion += () =>
+                        {
+                            // Crear nueva instancia del índice y navegar
+                            var newIndexView = new ClienteIndexView();
+                            ConfigurarEventosClienteIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        _navigationManager?.NavigateTo("Cliente", ViewType.Create, createView, null);
+                    };
                     
                     indexView.EditarCliente += (id) => 
                     {
                         var cliente = ClienteController.GetById(id);
                         if (cliente != null)
                         {
-                            var formView = new ClienteFormView();
-                            formView.ConfigurarParaEdicion(cliente);
-                            _navigationManager?.NavigateTo("Cliente", ViewType.Edit, formView, cliente);
+                            var editView = new ClienteFormView();
+                            editView.ConfigurarParaEdicion(cliente);
+                            
+                            // Configurar eventos del formulario
+                            editView.ClienteGuardado += () =>
+                            {
+                                // Crear nueva instancia del índice y navegar
+                                var newIndexView = new ClienteIndexView();
+                                ConfigurarEventosClienteIndex(newIndexView);
+                                _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                            };
+                            
+                            editView.CancelarOperacion += () =>
+                            {
+                                // Crear nueva instancia del índice y navegar
+                                var newIndexView = new ClienteIndexView();
+                                ConfigurarEventosClienteIndex(newIndexView);
+                                _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                            };
+                            
+                            _navigationManager?.NavigateTo("Cliente", ViewType.Edit, editView, cliente);
                         }
                     };
                     
@@ -192,33 +232,49 @@ namespace Veterinaria.App
                     break;
 
                 case ViewType.Create:
-                    var createView = new ClienteFormView();
-                    createView.ConfigurarParaNuevo();
+                    var createFormView = new ClienteFormView();
+                    createFormView.ConfigurarParaNuevo();
                     
                     // Configurar eventos
-                    createView.ClienteGuardado += () =>
-                        _navigationManager?.NavigateTo("Cliente", ViewType.Index, new ClienteIndexView(), null);
+                    createFormView.ClienteGuardado += () =>
+                    {
+                        var newIndexView = new ClienteIndexView();
+                        ConfigurarEventosClienteIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                    };
                     
-                    createView.CancelarOperacion += () =>
-                        _navigationManager?.NavigateTo("Cliente", ViewType.Index, new ClienteIndexView(), null);
+                    createFormView.CancelarOperacion += () =>
+                    {
+                        var newIndexView = new ClienteIndexView();
+                        ConfigurarEventosClienteIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                    };
                     
-                    vista = createView;
+                    vista = createFormView;
                     break;
 
                 case ViewType.Edit:
                     if (data is ModelLayer.Cliente cliente)
                     {
-                        var editView = new ClienteFormView();
-                        editView.ConfigurarParaEdicion(cliente);
+                        var editFormView = new ClienteFormView();
+                        editFormView.ConfigurarParaEdicion(cliente);
                         
                         // Configurar eventos
-                        editView.ClienteGuardado += () =>
-                            _navigationManager?.NavigateTo("Cliente", ViewType.Index, new ClienteIndexView(), null);
+                        editFormView.ClienteGuardado += () =>
+                        {
+                            var newIndexView = new ClienteIndexView();
+                            ConfigurarEventosClienteIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                        };
                         
-                        editView.CancelarOperacion += () =>
-                            _navigationManager?.NavigateTo("Cliente", ViewType.Index, new ClienteIndexView(), null);
+                        editFormView.CancelarOperacion += () =>
+                        {
+                            var newIndexView = new ClienteIndexView();
+                            ConfigurarEventosClienteIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                        };
                         
-                        vista = editView;
+                        vista = editFormView;
                     }
                     break;
             }
@@ -227,6 +283,62 @@ namespace Veterinaria.App
             {
                 _navigationManager.NavigateTo("Cliente", viewType, vista, data);
             }
+        }
+
+        /// <summary>
+        /// Configura los eventos comunes para las vistas de índice de cliente
+        /// </summary>
+        private void ConfigurarEventosClienteIndex(ClienteIndexView indexView)
+        {
+            indexView.NuevoCliente += () =>
+            {
+                var createView = new ClienteFormView();
+                createView.ConfigurarParaNuevo();
+                
+                createView.ClienteGuardado += () =>
+                {
+                    var newIndexView = new ClienteIndexView();
+                    ConfigurarEventosClienteIndex(newIndexView);
+                    _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                };
+                
+                createView.CancelarOperacion += () =>
+                {
+                    var newIndexView = new ClienteIndexView();
+                    ConfigurarEventosClienteIndex(newIndexView);
+                    _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                };
+                
+                _navigationManager?.NavigateTo("Cliente", ViewType.Create, createView, null);
+            };
+            
+            indexView.EditarCliente += (id) =>
+            {
+                var cliente = ClienteController.GetById(id);
+                if (cliente != null)
+                {
+                    var editView = new ClienteFormView();
+                    editView.ConfigurarParaEdicion(cliente);
+                    
+                    editView.ClienteGuardado += () =>
+                    {
+                        var newIndexView = new ClienteIndexView();
+                        ConfigurarEventosClienteIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    editView.CancelarOperacion += () =>
+                    {
+                        var newIndexView = new ClienteIndexView();
+                        ConfigurarEventosClienteIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Cliente", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    _navigationManager?.NavigateTo("Cliente", ViewType.Edit, editView, cliente);
+                }
+            };
+            
+            indexView.EliminarCliente += (id) => ConfirmarEliminarCliente(id);
         }
 
         /// <summary>
@@ -284,24 +396,7 @@ namespace Veterinaria.App
             {
                 // Navegar al módulo de clientes
                 var clienteIndexView = new ClienteIndexView();
-                
-                // Configurar eventos
-                clienteIndexView.NuevoCliente += () =>
-                    _navigationManager?.NavigateTo("Cliente", ViewType.Create, new ClienteFormView(), null);
-                
-                clienteIndexView.EditarCliente += (id) =>
-                {
-                    var cliente = ClienteController.GetById(id);
-                    if (cliente != null)
-                    {
-                        var formView = new ClienteFormView();
-                        formView.ConfigurarParaEdicion(cliente);
-                        _navigationManager?.NavigateTo("Cliente", ViewType.Edit, formView, cliente);
-                    }
-                };
-                
-                clienteIndexView.EliminarCliente += (id) => ConfirmarEliminarCliente(id);
-
+                ConfigurarEventosClienteIndex(clienteIndexView);
                 _navigationManager?.NavigateTo("Cliente", ViewType.Index, clienteIndexView, null);
             }
             catch (Exception ex)

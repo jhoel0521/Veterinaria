@@ -143,7 +143,7 @@ namespace Veterinaria.App.Views.Cliente
             this.btnLimpiar.Name = "btnLimpiar";
             this.btnLimpiar.Size = new Size(70, 25);
             this.btnLimpiar.TabIndex = 3;
-            this.btnLimpiar.Text = "?? Limpiar";
+            this.btnLimpiar.Text = "? Limpiar";
             this.btnLimpiar.UseVisualStyleBackColor = false;
             // 
             // panelActions

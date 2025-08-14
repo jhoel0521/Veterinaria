@@ -46,19 +46,34 @@ namespace Veterinaria.BusinessLayer.Controllers
                     return GetAll();
                 }
 
-                // Buscar en nombre, apellido o email
-                var query = Cliente.Where("activo", true);
+                var clientes = new List<Cliente>();
+                var searchTerm = $"%{searchText.Trim()}%";
 
-                // Usar WhereRaw para búsqueda más compleja
-                var searchSql = "(nombre LIKE @search OR apellido LIKE @search OR email LIKE @search)";
-                var parameters = new Dictionary<string, object>
-                {
-                    { "@search", $"%{searchText}%" }
-                };
+                // Buscar por nombre
+                var clientesPorNombre = Cliente.Where("nombre", SqlOperator.Like, searchTerm)
+                                             .Where("activo", true)
+                                             .Get().Cast<Cliente>().ToList();
+                clientes.AddRange(clientesPorNombre);
 
-                return query.WhereRaw(searchSql, parameters)
-                           .OrderBy("nombre")
-                           .Get().Cast<Cliente>().ToList();
+                // Buscar por apellido
+                var clientesPorApellido = Cliente.Where("apellido", SqlOperator.Like, searchTerm)
+                                               .Where("activo", true)
+                                               .Get().Cast<Cliente>().ToList();
+                clientes.AddRange(clientesPorApellido);
+
+                // Buscar por email (si no es null)
+                var clientesPorEmail = Cliente.Where("email", SqlOperator.Like, searchTerm)
+                                            .Where("activo", true)
+                                            .Get().Cast<Cliente>().ToList();
+                clientes.AddRange(clientesPorEmail);
+
+                // Eliminar duplicados y ordenar
+                return clientes
+                    .GroupBy(c => c.Id)
+                    .Select(g => g.First())
+                    .OrderBy(c => c.Nombre)
+                    .ThenBy(c => c.Apellido)
+                    .ToList();
             }
             catch (Exception ex)
             {
