@@ -47,11 +47,12 @@ namespace Veterinaria.DataLayer.Entities
         // Métodos de conveniencia específicos para Persona
         public static Persona? ValidarLogin(string usuario, string contrasena)
         {
-            return Where("usuario", usuario)
+            var user = Where("usuario", usuario)
                    .Where("contrasena", contrasena)
-                   .Where("activo", true)
+                   .Where("activo", 1)
                    .Get()
-                   .FirstOrDefault() as Persona;
+                   .FirstOrDefault();
+            return user as Persona;
         }
 
         public static List<Persona> UsuariosActivos()

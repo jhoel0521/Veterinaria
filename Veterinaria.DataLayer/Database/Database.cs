@@ -9,6 +9,7 @@ namespace Veterinaria.DataLayer.Database
     /// Clase Database - Equivalente a DB.php
     /// Patrón Singleton para manejar conexiones a la base de datos
     /// Factory para crear QueryBuilder instances
+    /// NOTA: Es reutilizable, no tiene configuración hardcodeada
     /// </summary>
     public class Database
     {
@@ -24,32 +25,62 @@ namespace Veterinaria.DataLayer.Database
         }
 
         /// <summary>
-        /// Obtiene la instancia singleton de Database
+        /// Configura e inicializa la instancia singleton de Database
+        /// Debe ser llamado desde la aplicación que consume la librería
         /// </summary>
-        public static Database GetInstance(string? connectionString = null)
+        /// <param name="connectionString">Connection string obligatorio</param>
+        /// <exception cref="ArgumentNullException">Si connectionString es null o vacío</exception>
+        /// <exception cref="InvalidOperationException">Si ya existe una instancia configurada</exception>
+        public static void Configure(string connectionString)
+        {
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new ArgumentNullException(nameof(connectionString), "El connection string no puede ser null o vacío.");
+            }
+
+            if (_instance != null)
+            {
+                throw new InvalidOperationException("Database ya ha sido configurado. No se puede reconfigurar.");
+            }
+
+            lock (_lock)
+            {
+                if (_instance == null)
+                {
+                    _instance = new Database(connectionString);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la instancia singleton de Database
+        /// Debe haberse llamado Configure() previamente
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Si no se ha configurado la base de datos</exception>
+        public static Database GetInstance()
         {
             if (_instance == null)
             {
-                lock (_lock)
-                {
-                    if (_instance == null)
-                    {
-                        if (string.IsNullOrEmpty(connectionString))
-                        {
-                            // Connection string por defecto para SQL Server local
-                            connectionString = "server=.\\SQLEXPRESS;database=SistemaVeterinario;integrated security=true;TrustServerCertificate=true;";
-                        }
-
-                        if (string.IsNullOrEmpty(connectionString))
-                        {
-                            throw new DatabaseException("Configuración de base de datos inválida. No se encontró connection string.");
-                        }
-
-                        _instance = new Database(connectionString);
-                    }
-                }
+                throw new InvalidOperationException(
+                    "Database no ha sido configurado. Debe llamar Database.Configure(connectionString) " +
+                    "antes de usar GetInstance(). Esto debe hacerse en la aplicación principal, " +
+                    "no en la librería DataLayer.");
             }
             return _instance;
+        }
+
+        /// <summary>
+        /// Método obsoleto mantenido por compatibilidad
+        /// Use Configure() + GetInstance() en su lugar
+        /// </summary>
+        [Obsolete("Use Database.Configure() en la aplicación principal y Database.GetInstance() para obtener la instancia. Este método será removido en futuras versiones.")]
+        public static Database GetInstance(string? connectionString)
+        {
+            if (_instance == null && !string.IsNullOrEmpty(connectionString))
+            {
+                Configure(connectionString);
+            }
+            return GetInstance();
         }
 
         private void Connect()
@@ -118,6 +149,18 @@ namespace Veterinaria.DataLayer.Database
         public SqlConnection? GetConnection()
         {
             return _connection;
+        }
+
+        /// <summary>
+        /// Reinicia la instancia singleton (útil para testing)
+        /// </summary>
+        internal static void Reset()
+        {
+            lock (_lock)
+            {
+                _instance?.Dispose();
+                _instance = null;
+            }
         }
 
         public void Dispose()
