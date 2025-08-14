@@ -10,4 +10,9 @@
     <AssemblyName>Veterinaria.App</AssemblyName> 
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Veterinaria.BusinessLayer\Veterinaria.BusinessLayer.csproj" />
+    <ProjectReference Include="..\Veterinaria.DataLayer\Veterinaria.DataLayer.csproj" />
+  </ItemGroup>
+
 </Project>
