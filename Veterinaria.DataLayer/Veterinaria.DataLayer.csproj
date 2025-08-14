@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.8" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
+  </ItemGroup>
+
 </Project>
