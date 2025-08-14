@@ -8,7 +8,7 @@ namespace Veterinaria.ModelLayer
 {
     /// <summary>
     /// Clase Model base - Equivalente a Model.php
-    /// Implementa el patrón Active Record como en Laravel Eloquent
+    /// Implementa el patrï¿½n Active Record como en Laravel Eloquent
     /// </summary>
     public abstract class Model<T> where T : Model<T>, new()
     {
@@ -27,7 +27,7 @@ namespace Veterinaria.ModelLayer
 
         public Model()
         {
-            // Si no se especifica tabla, usar el nombre de la clase en minúscula + 's'
+            // Si no se especifica tabla, usar el nombre de la clase en minï¿½scula + 's'
             if (string.IsNullOrEmpty(Table))
             {
                 Table = typeof(T).Name.ToLower() + "s";
@@ -146,7 +146,10 @@ namespace Veterinaria.ModelLayer
             {
                 parameters[$"@{attr.Key}"] = attr.Value ?? DBNull.Value;
             }
-            parameters[$"@{PrimaryKey}Id"] = GetKey();
+            var key = GetKey();
+            if (key == null)
+                throw new InvalidOperationException("No se puede actualizar un registro sin clave primaria.");
+            parameters[$"@{PrimaryKey}Id"] = key;
 
             using var command = db.Query(sql, parameters);
             command.ExecuteNonQuery();
@@ -216,7 +219,7 @@ namespace Veterinaria.ModelLayer
             return attributes;
         }
 
-        // Métodos estáticos equivalentes a los de PHP
+        // Mï¿½todos estï¿½ticos equivalentes a los de PHP
         public static QueryBuilder Query()
         {
             var instance = new T();
@@ -243,7 +246,7 @@ namespace Veterinaria.ModelLayer
             {
                 return Query().Where(column, SqlOperator.Equal, operatorOrValue);
             }
-            throw new ArgumentException("Parámetros inválidos para Where");
+            throw new ArgumentException("Parï¿½metros invï¿½lidos para Where");
         }
 
         public static T? Find(object id)
@@ -278,7 +281,7 @@ namespace Veterinaria.ModelLayer
             return Query().Limit(limit);
         }
 
-        // Métodos auxiliares
+        // Mï¿½todos auxiliares
         private void SetProperty(string name, object? value)
         {
             var property = typeof(T).GetProperty(name,
