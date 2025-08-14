@@ -44,7 +44,7 @@ namespace Veterinaria.DataLayer.QueryBuilder
                 _ => "="
             };
         }
-        public static SqlOperator ToStringSql(string sqlString)
+        public static SqlOperator? ToStringSql(string sqlString)
         {
             // si no esta definido tiramo un Error SqlOperator
             switch (sqlString)
@@ -74,7 +74,7 @@ namespace Veterinaria.DataLayer.QueryBuilder
                 case "NOT BETWEEN":
                     return SqlOperator.NotBetween;
                 default:
-                    throw new ArgumentException($"Operador SQL no reconocido: {sqlString}");
+                    return null;
             }
         }
     }

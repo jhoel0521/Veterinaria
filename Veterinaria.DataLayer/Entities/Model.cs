@@ -227,19 +227,13 @@ namespace Veterinaria.DataLayer.Entities
             // verificaremos 2 si operatorOrValue es un SqlOperator o un valor
             if (operatorOrValue is string opStr)
             {
-                try
-                {
-                    var sqlOp = QueryBuilder.SqlOperatorExtensions.ToStringSql(opStr);
-                    return Query().Where(column, sqlOp, value);
-                }
-                catch (ArgumentException ex)
-                {
-                    // se asumira que por defecto es igualdad siempre y cuando value sea null
-                    if (value == null)
-                    {
-                        return Query().Where(column, QueryBuilder.SqlOperator.Equal, null);
-                    }
-                }
+
+                var sqlOp = QueryBuilder.SqlOperatorExtensions.ToStringSql(opStr);
+                if (sqlOp.HasValue)
+                    return Query().Where(column, sqlOp.Value, value);
+                if (value == null)
+                    return Query().Where(column, QueryBuilder.SqlOperator.Equal, operatorOrValue);
+
             }
             else if (operatorOrValue is QueryBuilder.SqlOperator sqlOp)
             {
