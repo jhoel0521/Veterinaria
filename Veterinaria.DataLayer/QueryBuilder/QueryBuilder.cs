@@ -34,30 +34,38 @@ namespace Veterinaria.DataLayer.QueryBuilder
             return this;
         }
 
-        public QueryBuilder Where(string column, object operatorOrValue, object? value = null)
+        public QueryBuilder Where(string column, SqlOperator operatorOrValue, object? value = null)
         {
             string operatorStr;
             object actualValue;
 
             if (value == null)
             {
-                operatorStr = "=";
-                actualValue = operatorOrValue;
+                operatorStr = operatorOrValue.ToSqlString();
+                throw new ArgumentException("Debe proporcionar un valor cuando usa un operador específico");
             }
             else
             {
-                operatorStr = operatorOrValue.ToString() ?? "=";
+                operatorStr = operatorOrValue.ToSqlString();
                 actualValue = value;
-            }
-
-            if (!IsValidOperator(operatorStr))
-            {
-                throw new QueryException("Operador no válido", operatorStr);
             }
 
             var paramName = $"@param{_parameterCount++}";
             _whereConditions.Add($"{column} {operatorStr} {paramName}");
             _parameters[paramName] = actualValue;
+
+            return this;
+        }
+
+        /// <summary>
+        /// WHERE con valor simple (igualdad por defecto)
+        /// Ejemplo: Where("usuario", "admin")
+        /// </summary>
+        public QueryBuilder Where(string column, object value)
+        {
+            var paramName = $"@param{_parameterCount++}";
+            _whereConditions.Add($"{column} = {paramName}");
+            _parameters[paramName] = value;
 
             return this;
         }

@@ -81,7 +81,7 @@ namespace Veterinaria.DataLayer.Entities
         public T Save()
         {
             var db = Database.Database.GetInstance();
-            
+
             if (_exists)
             {
                 return PerformUpdate(db);
@@ -108,7 +108,7 @@ namespace Veterinaria.DataLayer.Entities
             var placeholders = string.Join(", ", attributes.Keys.Select(k => $"@{k}"));
 
             var sql = $"INSERT INTO {Table} ({columns}) VALUES ({placeholders}); SELECT SCOPE_IDENTITY();";
-            
+
             var parameters = new Dictionary<string, object>();
             foreach (var attr in attributes)
             {
@@ -117,7 +117,7 @@ namespace Veterinaria.DataLayer.Entities
 
             using var command = db.Query(sql, parameters);
             var newId = command.ExecuteScalar();
-            
+
             _attributes[PrimaryKey] = Convert.ToInt32(newId);
             _exists = true;
 
@@ -174,7 +174,7 @@ namespace Veterinaria.DataLayer.Entities
 
             using var command = db.Query(sql, parameters);
             command.ExecuteNonQuery();
-            
+
             _exists = false;
             return true;
         }
@@ -224,7 +224,33 @@ namespace Veterinaria.DataLayer.Entities
 
         public static QueryBuilder.QueryBuilder Where(string column, object operatorOrValue, object? value = null)
         {
-            return Query().Where(column, operatorOrValue, value);
+            // verificaremos 2 si operatorOrValue es un SqlOperator o un valor
+            if (operatorOrValue is string opStr)
+            {
+                try
+                {
+                    var sqlOp = QueryBuilder.SqlOperatorExtensions.ToStringSql(opStr);
+                    return Query().Where(column, sqlOp, value);
+                }
+                catch (ArgumentException ex)
+                {
+                    // se asumira que por defecto es igualdad siempre y cuando value sea null
+                    if (value == null)
+                    {
+                        return Query().Where(column, QueryBuilder.SqlOperator.Equal, null);
+                    }
+                }
+            }
+            else if (operatorOrValue is QueryBuilder.SqlOperator sqlOp)
+            {
+                return Query().Where(column, sqlOp, value);
+            }
+            else if (value == null)
+            {
+                return Query().Where(column, QueryBuilder.SqlOperator.Equal, operatorOrValue);
+            }
+            throw new ArgumentException("Parámetros inválidos para Where");
+
         }
 
         public static T? Find(object id)
@@ -262,11 +288,11 @@ namespace Veterinaria.DataLayer.Entities
         // Métodos auxiliares
         private void SetProperty(string name, object? value)
         {
-            var property = typeof(T).GetProperty(name, 
-                System.Reflection.BindingFlags.Public | 
-                System.Reflection.BindingFlags.Instance | 
+            var property = typeof(T).GetProperty(name,
+                System.Reflection.BindingFlags.Public |
+                System.Reflection.BindingFlags.Instance |
                 System.Reflection.BindingFlags.IgnoreCase);
-            
+
             if (property != null && property.CanWrite)
             {
                 if (value != DBNull.Value)
