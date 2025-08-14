@@ -1,11 +1,4 @@
-﻿-- ==========================================
--- SCRIPT COMPLETO PARA SISTEMA ZOOFI PETS
--- Autor: Sistema Generado
--- Fecha: 2025-08-12
--- Descripción: Script completo para crear la base de datos del Sistema Veterinario ZoofiPets
--- ==========================================
-
--- Crear la base de datos
+﻿-- Crear la base de datos
 USE master;
 GO
 
@@ -45,7 +38,8 @@ BEGIN
         contrasena NVARCHAR(255) NOT NULL,
         telefono NVARCHAR(20),
         direccion NVARCHAR(255),
-        fecha_creacion DATETIME DEFAULT GETDATE(),
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE(),
         activo BIT DEFAULT 1
     );
     PRINT 'Tabla Persona creada exitosamente.';
@@ -72,7 +66,8 @@ BEGIN
         stock_minimo INT DEFAULT 0,
         categoria NVARCHAR(100),
         proveedor NVARCHAR(200),
-        fecha_creacion DATETIME DEFAULT GETDATE(),
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE(),
         activo BIT DEFAULT 1
     );
     PRINT 'Tabla Productos creada exitosamente.';
@@ -96,7 +91,8 @@ BEGIN
         telefono NVARCHAR(20),
         email NVARCHAR(150),
         direccion NVARCHAR(255),
-        fecha_registro DATETIME DEFAULT GETDATE(),
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE(),
         activo BIT DEFAULT 1
     );
     PRINT 'Tabla Clientes creada exitosamente.';
@@ -123,7 +119,8 @@ BEGIN
         peso DECIMAL(5,2),
         color NVARCHAR(50),
         observaciones NVARCHAR(500),
-        fecha_registro DATETIME DEFAULT GETDATE(),
+        created_at DATETIME DEFAULT GETDATE(),
+        updated_at DATETIME DEFAULT GETDATE(),
         activo BIT DEFAULT 1,
         CONSTRAINT FK_Mascotas_Clientes FOREIGN KEY (cliente_id) REFERENCES Clientes(id)
     );
@@ -279,194 +276,7 @@ BEGIN
 END
 GO
 
--- ==========================================
--- PROCEDIMIENTOS ALMACENADOS SEGUROS
--- ==========================================
 
--- Procedimiento para login seguro (reemplazar el método actual)
-IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'sp_ValidarLogin')
-    DROP PROCEDURE sp_ValidarLogin;
-GO
-
-CREATE PROCEDURE sp_ValidarLogin
-    @usuario NVARCHAR(50),
-    @contrasena NVARCHAR(255)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    DECLARE @resultado INT = 0;
-    
-    SELECT @resultado = COUNT(*)
-    FROM Persona 
-    WHERE usuario = @usuario 
-      AND contrasena = @contrasena 
-      AND activo = 1;
-    
-    SELECT @resultado as resultado;
-END
-GO
-
--- Procedimiento para insertar usuario de forma segura
-IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'sp_InsertarUsuario')
-    DROP PROCEDURE sp_InsertarUsuario;
-GO
-
-CREATE PROCEDURE sp_InsertarUsuario
-    @nombre NVARCHAR(100),
-    @apellido NVARCHAR(100),
-    @email NVARCHAR(150),
-    @usuario NVARCHAR(50),
-    @contrasena NVARCHAR(255),
-    @telefono NVARCHAR(20),
-    @direccion NVARCHAR(255)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    BEGIN TRY
-        -- Verificar si el usuario o email ya existen
-        IF EXISTS (SELECT 1 FROM Persona WHERE usuario = @usuario OR email = @email)
-        BEGIN
-            SELECT 0 as resultado, 'Usuario o email ya existe' as mensaje;
-            RETURN;
-        END
-        
-        INSERT INTO Persona (nombre, apellido, email, usuario, contrasena, telefono, direccion)
-        VALUES (@nombre, @apellido, @email, @usuario, @contrasena, @telefono, @direccion);
-        
-        SELECT 1 as resultado, 'Usuario creado exitosamente' as mensaje;
-    END TRY
-    BEGIN CATCH
-        SELECT 0 as resultado, ERROR_MESSAGE() as mensaje;
-    END CATCH
-END
-GO
-
--- Procedimiento para modificar usuario
-IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'sp_ModificarUsuario')
-    DROP PROCEDURE sp_ModificarUsuario;
-GO
-
-CREATE PROCEDURE sp_ModificarUsuario
-    @nombre NVARCHAR(100),
-    @apellido NVARCHAR(100),
-    @email NVARCHAR(150),
-    @usuario NVARCHAR(50),
-    @contrasena NVARCHAR(255),
-    @telefono NVARCHAR(20),
-    @direccion NVARCHAR(255)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    BEGIN TRY
-        UPDATE Persona 
-        SET nombre = @nombre,
-            apellido = @apellido,
-            email = @email,
-            contrasena = @contrasena,
-            telefono = @telefono,
-            direccion = @direccion
-        WHERE usuario = @usuario;
-        
-        SELECT @@ROWCOUNT as resultado;
-    END TRY
-    BEGIN CATCH
-        SELECT 0 as resultado;
-    END CATCH
-END
-GO
-
--- Procedimiento para eliminar usuario (eliminación lógica)
-IF EXISTS (SELECT * FROM sys.objects WHERE type = 'P' AND name = 'sp_EliminarUsuario')
-    DROP PROCEDURE sp_EliminarUsuario;
-GO
-
-CREATE PROCEDURE sp_EliminarUsuario
-    @usuario NVARCHAR(50)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    BEGIN TRY
-        UPDATE Persona 
-        SET activo = 0
-        WHERE usuario = @usuario;
-        
-        SELECT @@ROWCOUNT as resultado;
-    END TRY
-    BEGIN CATCH
-        SELECT 0 as resultado;
-    END CATCH
-END
-GO
-
--- ==========================================
--- VISTAS PARA REPORTES
--- ==========================================
-
--- Vista de usuarios activos
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_UsuariosActivos')
-    DROP VIEW vw_UsuariosActivos;
-GO
-
-CREATE VIEW vw_UsuariosActivos AS
-SELECT 
-    id,
-    nombre,
-    apellido,
-    email,
-    usuario,
-    telefono,
-    direccion,
-    fecha_creacion
-FROM Persona 
-WHERE activo = 1;
-GO
-
--- Vista de productos con stock bajo
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_ProductosStockBajo')
-    DROP VIEW vw_ProductosStockBajo;
-GO
-
-CREATE VIEW vw_ProductosStockBajo AS
-SELECT 
-    codigo,
-    nombre,
-    stock,
-    stock_minimo,
-    categoria,
-    precio,
-    (stock_minimo - stock) as deficit
-FROM Productos 
-WHERE stock <= stock_minimo AND activo = 1;
-GO
-
--- Vista de ventas del día
-IF EXISTS (SELECT * FROM sys.views WHERE name = 'vw_VentasHoy')
-    DROP VIEW vw_VentasHoy;
-GO
-
-CREATE VIEW vw_VentasHoy AS
-SELECT 
-    v.id,
-    c.nombre + ' ' + c.apellido as cliente,
-    p.nombre + ' ' + p.apellido as vendedor,
-    v.fecha_venta,
-    v.total,
-    v.estado
-FROM Ventas v
-INNER JOIN Clientes c ON v.cliente_id = c.id
-INNER JOIN Persona p ON v.usuario_id = p.id
-WHERE CAST(v.fecha_venta AS DATE) = CAST(GETDATE() AS DATE);
-GO
-
--- ==========================================
--- ÍNDICES PARA MEJOR RENDIMIENTO
--- ==========================================
-
--- Índices para tabla Persona
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Persona_Usuario')
     CREATE NONCLUSTERED INDEX IX_Persona_Usuario ON Persona (usuario);
 
@@ -489,100 +299,8 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ventas_Cliente')
 
 GO
 
--- ==========================================
--- FUNCIÓN PARA REPORTES DE VENTAS
--- ==========================================
-
-IF EXISTS (SELECT * FROM sys.objects WHERE type = 'FN' AND name = 'fn_VentasPorPeriodo')
-    DROP FUNCTION fn_VentasPorPeriodo;
-GO
-
-CREATE FUNCTION fn_VentasPorPeriodo(@fechaInicio DATE, @fechaFin DATE)
-RETURNS TABLE
-AS
-RETURN
-(
-    SELECT 
-        v.id,
-        v.fecha_venta,
-        c.nombre + ' ' + c.apellido as cliente,
-        p.nombre + ' ' + p.apellido as vendedor,
-        v.subtotal,
-        v.impuesto,
-        v.total,
-        v.estado
-    FROM Ventas v
-    INNER JOIN Clientes c ON v.cliente_id = c.id
-    INNER JOIN Persona p ON v.usuario_id = p.id
-    WHERE CAST(v.fecha_venta AS DATE) BETWEEN @fechaInicio AND @fechaFin
-);
-GO
-
--- ==========================================
--- TRIGGERS PARA AUDITORÍA
--- ==========================================
-
--- Trigger para actualizar stock en ventas
-IF EXISTS (SELECT * FROM sys.triggers WHERE name = 'trg_ActualizarStock')
-    DROP TRIGGER trg_ActualizarStock;
-GO
-
-CREATE TRIGGER trg_ActualizarStock
-ON DetalleVenta
-AFTER INSERT
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    UPDATE p
-    SET stock = p.stock - i.cantidad
-    FROM Productos p
-    INNER JOIN inserted i ON p.id = i.producto_id;
-END
-GO
-
--- ==========================================
--- VERIFICACIÓN FINAL
--- ==========================================
-
-PRINT '==========================================';
-PRINT 'VERIFICACIÓN DE INSTALACIÓN';
-PRINT '==========================================';
-
 -- Verificar tablas creadas
 SELECT 'Tabla: ' + TABLE_NAME + ' - Creada ✓' as Estado
 FROM INFORMATION_SCHEMA.TABLES 
 WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_CATALOG = 'SistemaVeterinario'
 ORDER BY TABLE_NAME;
-
--- Verificar datos de prueba
-SELECT 'Usuarios creados: ' + CAST(COUNT(*) AS NVARCHAR) as Resumen FROM Persona;
-SELECT 'Productos creados: ' + CAST(COUNT(*) AS NVARCHAR) as Resumen FROM Productos;
-SELECT 'Clientes creados: ' + CAST(COUNT(*) AS NVARCHAR) as Resumen FROM Clientes;
-SELECT 'Mascotas registradas: ' + CAST(COUNT(*) AS NVARCHAR) as Resumen FROM Mascotas;
-
--- Verificar procedimientos
-SELECT 'Procedimiento: ' + name + ' - Creado ✓' as Estado
-FROM sys.procedures 
-WHERE name LIKE 'sp_%'
-ORDER BY name;
-
--- Verificar vistas
-SELECT 'Vista: ' + name + ' - Creada ✓' as Estado
-FROM sys.views 
-WHERE name LIKE 'vw_%'
-ORDER BY name;
-
-PRINT '==========================================';
-PRINT 'INSTALACIÓN COMPLETADA EXITOSAMENTE';
-PRINT '==========================================';
-PRINT 'Usuarios de prueba disponibles:';
-PRINT '- Usuario: admin     | Contraseña: 123456';
-PRINT '- Usuario: jperez    | Contraseña: 123456';
-PRINT '- Usuario: mgonzalez | Contraseña: 123456';
-PRINT '- Usuario: cveterinario | Contraseña: 123456';
-PRINT '==========================================';
-
--- Mostrar string de conexión recomendado
-PRINT 'String de conexión recomendado:';
-PRINT 'server=DESKTOP-S0REQAM\SQLEXPRESS;database=SistemaVeterinario;integrated security=true;TrustServerCertificate=true;';

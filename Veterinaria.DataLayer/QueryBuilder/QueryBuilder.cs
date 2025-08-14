@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.Data.SqlClient;
 using System.Linq;
-using System.Reflection;
+using System.Data;
 using Veterinaria.DataLayer.Database;
-using Veterinaria.DataLayer.Entities;
 
 namespace Veterinaria.DataLayer.QueryBuilder
 {
@@ -13,7 +12,8 @@ namespace Veterinaria.DataLayer.QueryBuilder
         private readonly Database.Database _db;
         private readonly string _table;
         private Type? _modelType;
-        private List<string> _selectColumns = new List<string>();
+        
+        private string _selectClause = "*";
         private List<string> _whereConditions = new List<string>();
         private Dictionary<string, object> _parameters = new Dictionary<string, object>();
         private string _orderBy = string.Empty;
@@ -30,27 +30,42 @@ namespace Veterinaria.DataLayer.QueryBuilder
 
         public QueryBuilder Select(params string[] columns)
         {
-            _selectColumns.AddRange(columns);
+            _selectClause = columns.Length > 0 ? string.Join(", ", columns) : "*";
             return this;
         }
 
-        public QueryBuilder Where(string column, string operatorSymbol, object? value = null)
+        public QueryBuilder Where(string column, object operatorOrValue, object? value = null)
         {
+            string operatorStr;
+            object actualValue;
+
             if (value == null)
             {
-                value = operatorSymbol;
-                operatorSymbol = "=";
+                operatorStr = "=";
+                actualValue = operatorOrValue;
+            }
+            else
+            {
+                operatorStr = operatorOrValue.ToString() ?? "=";
+                actualValue = value;
+            }
+
+            if (!IsValidOperator(operatorStr))
+            {
+                throw new QueryException("Operador no válido", operatorStr);
             }
 
             var paramName = $"@param{_parameterCount++}";
-            _whereConditions.Add($"{column} {operatorSymbol} {paramName}");
-            _parameters[paramName] = value;
+            _whereConditions.Add($"{column} {operatorStr} {paramName}");
+            _parameters[paramName] = actualValue;
+
             return this;
         }
 
         public QueryBuilder WhereRaw(string sql, Dictionary<string, object>? bindings = null)
         {
             _whereConditions.Add(sql);
+            
             if (bindings != null)
             {
                 foreach (var binding in bindings)
@@ -58,39 +73,44 @@ namespace Veterinaria.DataLayer.QueryBuilder
                     _parameters[binding.Key] = binding.Value;
                 }
             }
+
             return this;
         }
 
         public QueryBuilder WhereIn(string column, IEnumerable<object> values)
         {
             var valuesList = values.ToList();
+            if (!valuesList.Any()) return this;
+
             var paramNames = new List<string>();
-            
-            for (int i = 0; i < valuesList.Count; i++)
+            foreach (var value in valuesList)
             {
                 var paramName = $"@param{_parameterCount++}";
                 paramNames.Add(paramName);
-                _parameters[paramName] = valuesList[i];
+                _parameters[paramName] = value;
             }
 
             _whereConditions.Add($"{column} IN ({string.Join(", ", paramNames)})");
             return this;
         }
 
-        public QueryBuilder WhereBetween(string column, object value1, object value2)
+        public QueryBuilder WhereBetween(string column, object[] values)
         {
+            if (values.Length < 2) return this;
+
             var param1 = $"@param{_parameterCount++}";
             var param2 = $"@param{_parameterCount++}";
-            
+
             _whereConditions.Add($"{column} BETWEEN {param1} AND {param2}");
-            _parameters[param1] = value1;
-            _parameters[param2] = value2;
+            _parameters[param1] = values[0];
+            _parameters[param2] = values.Length > 1 ? values[1] : values[0];
+
             return this;
         }
 
         public QueryBuilder OrderBy(string column, string direction = "ASC")
         {
-            _orderBy = $"ORDER BY {column} {direction.ToUpper()}";
+            _orderBy = $"ORDER BY {column} {direction}";
             return this;
         }
 
@@ -106,111 +126,73 @@ namespace Veterinaria.DataLayer.QueryBuilder
             return this;
         }
 
-        public List<T> Get<T>() where T : Model, new()
+        public int Count()
         {
-            var sql = BuildSelectSql();
-            var results = new List<T>();
+            var originalSelect = _selectClause;
+            _selectClause = "COUNT(*) as count";
+            
+            var results = Get();
+            _selectClause = originalSelect;
 
-            using (var command = _db.Query(sql, _parameters))
+            if (results.Any())
             {
-                using (var reader = command.ExecuteReader())
+                var firstResult = results.First();
+                if (firstResult is Dictionary<string, object> dict && dict.ContainsKey("count"))
                 {
-                    while (reader.Read())
-                    {
-                        var model = new T();
-                        var attributes = new Dictionary<string, object>();
-
-                        for (int i = 0; i < reader.FieldCount; i++)
-                        {
-                            var fieldName = reader.GetName(i);
-                            var fieldValue = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                            attributes[fieldName] = fieldValue;
-                        }
-
-                        model.Fill(attributes, true); // true indica que viene de la DB
-                        results.Add(model);
-                    }
+                    return Convert.ToInt32(dict["count"]);
                 }
             }
 
-            // Cargar relaciones eagerly loaded
-            if (_eagerLoads.Any())
-            {
-                foreach (var model in results)
-                {
-                    LoadRelations(model);
-                }
-            }
-
-            return results;
+            return 0;
         }
 
         public List<object> Get()
         {
-            if (_modelType != null)
-            {
-                var method = typeof(QueryBuilder).GetMethod("Get", Type.EmptyTypes);
-                var genericMethod = method?.MakeGenericMethod(_modelType);
-                return (List<object>)(genericMethod?.Invoke(this, null) ?? new List<object>());
-            }
-
             var sql = BuildSelectSql();
+            
+            using var command = _db.Query(sql, _parameters);
+            using var reader = command.ExecuteReader();
+            
             var results = new List<object>();
-
-            using (var command = _db.Query(sql, _parameters))
+            
+            if (_modelType != null && !IsAggregateQuery(sql))
             {
-                using (var reader = command.ExecuteReader())
+                while (reader.Read())
                 {
-                    while (reader.Read())
+                    var modelInstance = CreateModelInstance(reader);
+                    results.Add(modelInstance);
+                }
+
+                if (_eagerLoads.Any())
+                {
+                    LoadRelations(results);
+                }
+            }
+            else
+            {
+                while (reader.Read())
+                {
+                    var row = new Dictionary<string, object>();
+                    for (int i = 0; i < reader.FieldCount; i++)
                     {
-                        var row = new Dictionary<string, object>();
-                        for (int i = 0; i < reader.FieldCount; i++)
-                        {
-                            var fieldName = reader.GetName(i);
-                            var fieldValue = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                            row[fieldName] = fieldValue;
-                        }
-                        results.Add(row);
+                        row[reader.GetName(i)] = reader.GetValue(i);
                     }
+                    results.Add(row);
                 }
             }
 
             return results;
         }
 
-        public T? First<T>() where T : Model, new()
-        {
-            return Limit(1).Get<T>().FirstOrDefault();
-        }
-
         public object? First()
         {
-            return Limit(1).Get().FirstOrDefault();
-        }
-
-        public int Count()
-        {
-            var originalSelect = _selectColumns.ToList();
-            _selectColumns.Clear();
-            _selectColumns.Add("COUNT(*) as count");
-
-            var sql = BuildSelectSql();
-            
-            using (var command = _db.Query(sql, _parameters))
-            {
-                var result = command.ExecuteScalar();
-                
-                // Restaurar select original
-                _selectColumns = originalSelect;
-                
-                return Convert.ToInt32(result);
-            }
+            var results = Limit(1).Get();
+            return results.FirstOrDefault();
         }
 
         private string BuildSelectSql()
         {
-            var selectClause = _selectColumns.Any() ? string.Join(", ", _selectColumns) : "*";
-            var sql = $"SELECT {selectClause} FROM {_table}";
+            var sql = $"SELECT {_selectClause} FROM {_table}";
 
             if (_whereConditions.Any())
             {
@@ -219,29 +201,61 @@ namespace Veterinaria.DataLayer.QueryBuilder
 
             if (!string.IsNullOrEmpty(_orderBy))
             {
-                sql += " " + _orderBy;
+                sql += $" {_orderBy}";
             }
 
             if (_limit.HasValue)
             {
-                // En SQL Server usamos TOP en lugar de LIMIT
-                sql = sql.Replace($"SELECT {selectClause}", $"SELECT TOP {_limit.Value} {selectClause}");
+                sql = sql.Replace($"SELECT {_selectClause}", $"SELECT TOP {_limit.Value} {_selectClause}");
             }
 
             return sql;
         }
 
-        private void LoadRelations<T>(T model) where T : Model
+        private bool IsValidOperator(string operatorStr)
         {
-            foreach (var relation in _eagerLoads)
+            var validOperators = new[]
             {
-                var method = typeof(T).GetMethod(relation, BindingFlags.Public | BindingFlags.Instance);
-                if (method != null)
+                "=", "<", ">", "<=", ">=", "<>", "!=", "LIKE", "NOT LIKE",
+                "BETWEEN", "IN", "NOT IN"
+            };
+
+            return validOperators.Contains(operatorStr.ToUpper());
+        }
+
+        private bool IsAggregateQuery(string sql)
+        {
+            return sql.Contains("COUNT(") || sql.Contains("AVG(") || 
+                   sql.Contains("SUM(") || sql.Contains("MIN(") || sql.Contains("MAX(");
+        }
+
+        private object CreateModelInstance(SqlDataReader reader)
+        {
+            var instance = Activator.CreateInstance(_modelType!);
+            var properties = _modelType!.GetProperties();
+
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                var columnName = reader.GetName(i);
+                var property = properties.FirstOrDefault(p => 
+                    p.Name.Equals(columnName, StringComparison.OrdinalIgnoreCase));
+
+                if (property != null && property.CanWrite)
                 {
-                    var relationResult = method.Invoke(model, null);
-                    model.SetRelation(relation, relationResult);
+                    var value = reader.GetValue(i);
+                    if (value != DBNull.Value)
+                    {
+                        property.SetValue(instance, value);
+                    }
                 }
             }
+
+            return instance!;
+        }
+
+        private void LoadRelations(List<object> results)
+        {
+            // TODO: Implementar eager loading
         }
 
         public Dictionary<string, object> GetBindings()
