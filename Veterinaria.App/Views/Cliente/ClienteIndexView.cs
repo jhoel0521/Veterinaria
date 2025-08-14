@@ -318,20 +318,15 @@ namespace Veterinaria.App.Views.Cliente
         {
             var menu = new ContextMenuStrip();
 
-            // Ver detalles
-            var verItem = new ToolStripMenuItem("??? Ver detalles");
-            verItem.Click += (s, e) => VerCliente?.Invoke(clienteId);
-            menu.Items.Add(verItem);
-
             // Editar
-            var editarItem = new ToolStripMenuItem("?? Editar");
+            var editarItem = new ToolStripMenuItem("Editar");
             editarItem.Click += (s, e) => EditarCliente?.Invoke(clienteId);
             menu.Items.Add(editarItem);
 
             menu.Items.Add(new ToolStripSeparator());
 
             // Eliminar
-            var eliminarItem = new ToolStripMenuItem("??? Eliminar");
+            var eliminarItem = new ToolStripMenuItem("Eliminar");
             eliminarItem.Click += (s, e) => EliminarCliente?.Invoke(clienteId);
             eliminarItem.ForeColor = Color.FromArgb(231, 76, 60);
             menu.Items.Add(eliminarItem);
