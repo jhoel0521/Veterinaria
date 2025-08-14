@@ -49,6 +49,10 @@ namespace Veterinaria.App.Views.Cliente
             // Eventos del DataGridView
             dgvClientes.CellDoubleClick += DgvClientes_CellDoubleClick;
             dgvClientes.CellFormatting += DgvClientes_CellFormatting;
+            
+            // Agregar evento MouseEnter para efecto hover en botones
+            dgvClientes.CellMouseEnter += DgvClientes_CellMouseEnter;
+            dgvClientes.CellMouseLeave += DgvClientes_CellMouseLeave;
         }
 
         /// <summary>
@@ -73,7 +77,7 @@ namespace Veterinaria.App.Views.Cliente
                 Name = "NombreCompleto",
                 HeaderText = "Nombre Completo",
                 DataPropertyName = "NombreCompleto",
-                Width = 200,
+                AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 ReadOnly = true
             });
 
@@ -83,7 +87,7 @@ namespace Veterinaria.App.Views.Cliente
                 Name = "Email",
                 HeaderText = "Email",
                 DataPropertyName = "Email",
-                Width = 200,
+                Width = 180,
                 ReadOnly = true
             });
 
@@ -97,16 +101,6 @@ namespace Veterinaria.App.Views.Cliente
                 ReadOnly = true
             });
 
-            // Columna Dirección
-            dgvClientes.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                Name = "Direccion",
-                HeaderText = "Dirección",
-                DataPropertyName = "Direccion",
-                Width = 250,
-                ReadOnly = true
-            });
-
             // Columna Estado
             dgvClientes.Columns.Add(new DataGridViewTextBoxColumn
             {
@@ -117,18 +111,49 @@ namespace Veterinaria.App.Views.Cliente
                 ReadOnly = true
             });
 
-            // Columna de Acciones
-            var columnAcciones = new DataGridViewButtonColumn
+            // Botón Editar
+            var btnEditarColumn = new DataGridViewButtonColumn
             {
-                Name = "Acciones",
-                HeaderText = "Acciones",
-                Width = 100,
-                UseColumnTextForButtonValue = false
+                Name = "BtnEditar",
+                HeaderText = "",
+                Text = "✏️ Editar",
+                UseColumnTextForButtonValue = true,
+                Width = 90,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(52, 152, 219),
+                    ForeColor = Color.White,
+                    Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                },
+                FlatStyle = FlatStyle.Flat
             };
-            dgvClientes.Columns.Add(columnAcciones);
+            dgvClientes.Columns.Add(btnEditarColumn);
+
+            // Botón Eliminar
+            var btnEliminarColumn = new DataGridViewButtonColumn
+            {
+                Name = "BtnEliminar",
+                HeaderText = "",
+                Text = "🗑️ Eliminar",
+                UseColumnTextForButtonValue = true,
+                Width = 90,
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(231, 76, 60),
+                    ForeColor = Color.White,
+                    Font = new Font("Segoe UI", 8F, FontStyle.Bold),
+                    Alignment = DataGridViewContentAlignment.MiddleCenter
+                },
+                FlatStyle = FlatStyle.Flat
+            };
+            dgvClientes.Columns.Add(btnEliminarColumn);
 
             // Evento para manejar clicks en botones de acción
             dgvClientes.CellContentClick += DgvClientes_CellContentClick;
+            
+            // Configurar estilo de botones cuando se pinta la celda
+            dgvClientes.CellPainting += DgvClientes_CellPainting;
         }
 
         /// <summary>
@@ -298,42 +323,88 @@ namespace Veterinaria.App.Views.Cliente
             if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
             {
                 var columnName = dgvClientes.Columns[e.ColumnIndex].Name;
+                var clienteId = Convert.ToInt32(dgvClientes.Rows[e.RowIndex].Cells["Id"].Value);
 
-                if (columnName == "Acciones")
+                switch (columnName)
                 {
-                    var clienteId = Convert.ToInt32(dgvClientes.Rows[e.RowIndex].Cells["Id"].Value);
-                    
-                    // Mostrar menú contextual con opciones
-                    MostrarMenuAcciones(clienteId);
+                    case "BtnEditar":
+                        EditarCliente?.Invoke(clienteId);
+                        break;
+
+                    case "BtnEliminar":
+                        EliminarCliente?.Invoke(clienteId);
+                        break;
                 }
             }
         }
 
-        #endregion
-
-        /// <summary>
-        /// Muestra el menú de acciones para un cliente
-        /// </summary>
-        private void MostrarMenuAcciones(int clienteId)
+        private void DgvClientes_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
         {
-            var menu = new ContextMenuStrip();
+            // Solo aplicar estilo personalizado a las columnas de botones
+            if (e.ColumnIndex >= 0 && e.RowIndex >= 0)
+            {
+                var columnName = dgvClientes.Columns[e.ColumnIndex].Name;
+                
+                if (columnName == "BtnEditar" || columnName == "BtnEliminar")
+                {
+                    e.Paint(e.CellBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.Border);
+                    
+                    // Determinar color del botón
+                    Color backColor = columnName == "BtnEditar" ? 
+                        Color.FromArgb(52, 152, 219) : Color.FromArgb(231, 76, 60);
+                    
+                    // Crear un rectángulo con margen para el botón
+                    var buttonRect = new Rectangle(
+                        e.CellBounds.X + 2,
+                        e.CellBounds.Y + 2,
+                        e.CellBounds.Width - 4,
+                        e.CellBounds.Height - 4
+                    );
 
-            // Editar
-            var editarItem = new ToolStripMenuItem("Editar");
-            editarItem.Click += (s, e) => EditarCliente?.Invoke(clienteId);
-            menu.Items.Add(editarItem);
+                    // Pintar el fondo del botón con bordes redondeados
+                    using (var brush = new SolidBrush(backColor))
+                    {
+                        e.Graphics.FillRectangle(brush, buttonRect);
+                    }
 
-            menu.Items.Add(new ToolStripSeparator());
+                    // Dibujar el texto del botón
+                    string buttonText = columnName == "BtnEditar" ? "✏️ Editar" : "🗑️ Eliminar";
+                    using (var textBrush = new SolidBrush(Color.White))
+                    {
+                        var stringFormat = new StringFormat
+                        {
+                            Alignment = StringAlignment.Center,
+                            LineAlignment = StringAlignment.Center
+                        };
+                        
+                        e.Graphics.DrawString(buttonText, 
+                            new Font("Segoe UI", 8F, FontStyle.Bold), 
+                            textBrush, buttonRect, stringFormat);
+                    }
 
-            // Eliminar
-            var eliminarItem = new ToolStripMenuItem("Eliminar");
-            eliminarItem.Click += (s, e) => EliminarCliente?.Invoke(clienteId);
-            eliminarItem.ForeColor = Color.FromArgb(231, 76, 60);
-            menu.Items.Add(eliminarItem);
-
-            // Mostrar el menú en la posición del cursor
-            menu.Show(Cursor.Position);
+                    e.Handled = true;
+                }
+            }
         }
+
+        private void DgvClientes_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                var columnName = dgvClientes.Columns[e.ColumnIndex].Name;
+                if (columnName == "BtnEditar" || columnName == "BtnEliminar")
+                {
+                    dgvClientes.Cursor = Cursors.Hand;
+                }
+            }
+        }
+
+        private void DgvClientes_CellMouseLeave(object? sender, DataGridViewCellEventArgs e)
+        {
+            dgvClientes.Cursor = Cursors.Default;
+        }
+
+        #endregion
 
         /// <summary>
         /// Método público para refrescar la vista (llamado desde el Dashboard)
