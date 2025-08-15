@@ -425,17 +425,5 @@ namespace Veterinaria.App.Views.Cliente
         {
             CargarClientes();
         }
-
-        /// <summary>
-        /// Obtiene el cliente seleccionado actualmente
-        /// </summary>
-        public int? GetClienteSeleccionado()
-        {
-            if (dgvClientes.CurrentRow != null)
-            {
-                return Convert.ToInt32(dgvClientes.CurrentRow.Cells["Id"].Value);
-            }
-            return null;
-        }
     }
 }

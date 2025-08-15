@@ -1,6 +1,7 @@
 using Veterinaria.BusinessLayer.Controllers;
 using Veterinaria.App.Navigation;
 using Veterinaria.App.Views.Cliente;
+using Veterinaria.App.Views.Mascota;
 
 namespace Veterinaria.App
 {
@@ -135,9 +136,7 @@ namespace Veterinaria.App
                         break;
                     
                     case "mascota":
-                        // TODO: Implementar navegación de mascotas
-                        MessageBox.Show("Módulo de Mascotas - Próximamente", "Información",
-                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        ManejarNavegacionMascota(viewType, data);
                         break;
                     
                     case "venta":
@@ -408,9 +407,18 @@ namespace Veterinaria.App
 
         private void BtnMascotas_Click(object? sender, EventArgs e)
         {
-            // TODO: Implementar formulario de mascotas
-            MessageBox.Show("Módulo de Mascotas - Próximamente", "Información", 
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                // Navegar al módulo de mascotas
+                var mascotaIndexView = new MascotaIndexView();
+                ConfigurarEventosMascotaIndex(mascotaIndexView);
+                _navigationManager?.NavigateTo("Mascota", ViewType.Index, mascotaIndexView, null);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir módulo de mascotas: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void BtnVentas_Click(object? sender, EventArgs e)
@@ -481,6 +489,237 @@ namespace Veterinaria.App
             }
             
             base.OnFormClosing(e);
+        }
+
+        /// <summary>
+        /// Maneja la navegación específica del módulo de Mascotas
+        /// </summary>
+        private void ManejarNavegacionMascota(ViewType viewType, object? data)
+        {
+            UserControl? vista = null;
+
+            switch (viewType)
+            {
+                case ViewType.Index:
+                    var indexView = new MascotaIndexView();
+                    
+                    // Configurar eventos usando una lambda que mantenga la referencia
+                    indexView.NuevaMascota += () => 
+                    {
+                        var createView = new MascotaFormView();
+                        createView.ConfigurarParaNuevo();
+                        
+                        // Configurar eventos del formulario
+                        createView.MascotaGuardada += () =>
+                        {
+                            // Crear nueva instancia del índice y navegar
+                            var newIndexView = new MascotaIndexView();
+                            ConfigurarEventosMascotaIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        createView.CancelarOperacion += () =>
+                        {
+                            // Crear nueva instancia del índice y navegar
+                            var newIndexView = new MascotaIndexView();
+                            ConfigurarEventosMascotaIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        _navigationManager?.NavigateTo("Mascota", ViewType.Create, createView, null);
+                    };
+                    
+                    indexView.EditarMascota += (id) => 
+                    {
+                        var mascota = MascotaController.GetById(id);
+                        if (mascota != null)
+                        {
+                            var editView = new MascotaFormView();
+                            editView.ConfigurarParaEdicion(mascota);
+                            
+                            // Configurar eventos del formulario
+                            editView.MascotaGuardada += () =>
+                            {
+                                // Crear nueva instancia del índice y navegar
+                                var newIndexView = new MascotaIndexView();
+                                ConfigurarEventosMascotaIndex(newIndexView);
+                                _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                            };
+                            
+                            editView.CancelarOperacion += () =>
+                            {
+                                // Crear nueva instancia del índice y navegar
+                                var newIndexView = new MascotaIndexView();
+                                ConfigurarEventosMascotaIndex(newIndexView);
+                                _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                            };
+                            
+                            _navigationManager?.NavigateTo("Mascota", ViewType.Edit, editView, mascota);
+                        }
+                    };
+                    
+                    indexView.EliminarMascota += (id) => ConfirmarEliminarMascota(id);
+                    
+                    vista = indexView;
+                    break;
+
+                case ViewType.Create:
+                    var createFormView = new MascotaFormView();
+                    createFormView.ConfigurarParaNuevo();
+                    
+                    // Configurar eventos
+                    createFormView.MascotaGuardada += () =>
+                    {
+                        var newIndexView = new MascotaIndexView();
+                        ConfigurarEventosMascotaIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    createFormView.CancelarOperacion += () =>
+                    {
+                        var newIndexView = new MascotaIndexView();
+                        ConfigurarEventosMascotaIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    vista = createFormView;
+                    break;
+
+                case ViewType.Edit:
+                    if (data is ModelLayer.Mascota mascota)
+                    {
+                        var editFormView = new MascotaFormView();
+                        editFormView.ConfigurarParaEdicion(mascota);
+                        
+                        // Configurar eventos
+                        editFormView.MascotaGuardada += () =>
+                        {
+                            var newIndexView = new MascotaIndexView();
+                            ConfigurarEventosMascotaIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        editFormView.CancelarOperacion += () =>
+                        {
+                            var newIndexView = new MascotaIndexView();
+                            ConfigurarEventosMascotaIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        vista = editFormView;
+                    }
+                    break;
+            }
+
+            if (vista != null && _navigationManager != null)
+            {
+                _navigationManager.NavigateTo("Mascota", viewType, vista, data);
+            }
+        }
+
+        /// <summary>
+        /// Configura los eventos comunes para las vistas de índice de mascota
+        /// </summary>
+        private void ConfigurarEventosMascotaIndex(MascotaIndexView indexView)
+        {
+            indexView.NuevaMascota += () =>
+            {
+                var createView = new MascotaFormView();
+                createView.ConfigurarParaNuevo();
+                
+                createView.MascotaGuardada += () =>
+                {
+                    var newIndexView = new MascotaIndexView();
+                    ConfigurarEventosMascotaIndex(newIndexView);
+                    _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                };
+                
+                createView.CancelarOperacion += () =>
+                {
+                    var newIndexView = new MascotaIndexView();
+                    ConfigurarEventosMascotaIndex(newIndexView);
+                    _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                };
+                
+                _navigationManager?.NavigateTo("Mascota", ViewType.Create, createView, null);
+            };
+            
+            indexView.EditarMascota += (id) =>
+            {
+                var mascota = MascotaController.GetById(id);
+                if (mascota != null)
+                {
+                    var editView = new MascotaFormView();
+                    editView.ConfigurarParaEdicion(mascota);
+                    
+                    editView.MascotaGuardada += () =>
+                    {
+                        var newIndexView = new MascotaIndexView();
+                        ConfigurarEventosMascotaIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    editView.CancelarOperacion += () =>
+                    {
+                        var newIndexView = new MascotaIndexView();
+                        ConfigurarEventosMascotaIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Mascota", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    _navigationManager?.NavigateTo("Mascota", ViewType.Edit, editView, mascota);
+                }
+            };
+            
+            indexView.EliminarMascota += (id) => ConfirmarEliminarMascota(id);
+        }
+
+        /// <summary>
+        /// Confirma y ejecuta la eliminación de una mascota
+        /// </summary>
+        private void ConfirmarEliminarMascota(int mascotaId)
+        {
+            try
+            {
+                var mascota = MascotaController.GetById(mascotaId);
+                if (mascota == null)
+                {
+                    MessageBox.Show("Mascota no encontrada", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    $"¿Está seguro que desea eliminar a la mascota '{mascota.Nombre}'?\n\n" +
+                    "Esta acción no se puede deshacer.",
+                    "Confirmar Eliminación",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    var (success, message) = MascotaController.Delete(mascotaId);
+                    
+                    if (success)
+                    {
+                        MessageBox.Show(message, "Éxito",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        
+                        // Refrescar la vista actual si es el índice de mascotas
+                        var currentView = panelContent.Controls.OfType<MascotaIndexView>().FirstOrDefault();
+                        currentView?.RefrescarVista();
+                    }
+                    else
+                    {
+                        MessageBox.Show(message, "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al eliminar mascota: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
     }
 }
