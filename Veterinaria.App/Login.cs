@@ -7,6 +7,8 @@ namespace Veterinaria.App
     /// </summary>
     public partial class Login : Form
     {
+        private Dashboard? _dashboardInstance;
+
         public Login()
         {
             InitializeComponent();
@@ -103,12 +105,8 @@ namespace Veterinaria.App
 
                 if (resultado.Exitoso)
                 {
-                    // Login exitoso - mostrar dashboard
-                    var dashboard = new Dashboard();
-                    dashboard.Show();
-                    
-                    // Ocultar formulario de login
-                    this.Hide();
+                    // Login exitoso - abrir dashboard de forma modal
+                    AbrirDashboard();
                 }
                 else
                 {
@@ -131,6 +129,84 @@ namespace Veterinaria.App
                 // Rehabilitar controles
                 btnLogin.Enabled = true;
                 btnLogin.Text = "Ingresar";
+            }
+        }
+
+        /// <summary>
+        /// Abre el Dashboard y maneja su ciclo de vida correctamente
+        /// </summary>
+        private void AbrirDashboard()
+        {
+            try
+            {
+                // Ocultar el formulario de login temporalmente
+                this.Hide();
+                
+                // Crear nueva instancia del dashboard
+                _dashboardInstance = new Dashboard();
+                
+                // Configurar eventos del dashboard para manejar su cierre
+                _dashboardInstance.FormClosed += Dashboard_FormClosed;
+                
+                // Mostrar dashboard como formulario modal
+                _dashboardInstance.ShowDialog(this);
+                
+                // Cuando el dashboard se cierra, se ejecutará Dashboard_FormClosed
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir dashboard: {ex.Message}", "Error", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                this.Show(); // Mostrar login nuevamente en caso de error
+            }
+        }
+
+        /// <summary>
+        /// Se ejecuta cuando el Dashboard se cierra
+        /// </summary>
+        private void Dashboard_FormClosed(object? sender, FormClosedEventArgs e)
+        {
+            try
+            {
+                // Limpiar la referencia del dashboard
+                if (_dashboardInstance != null)
+                {
+                    _dashboardInstance.FormClosed -= Dashboard_FormClosed;
+                    _dashboardInstance = null;
+                }
+
+                // Verificar si el usuario sigue autenticado
+                if (AuthController.EstaAutenticado)
+                {
+                    // Si aún está autenticado, significa que cerró el dashboard pero no hizo logout
+                    // Hacer logout automático para limpiar la sesión
+                    AuthController.Logout();
+                }
+
+                // Limpiar campos de login para nueva sesión
+                txtContrasena.Text = "";
+                if (txtUsuario.Text != "Usuario o Email")
+                {
+                    txtUsuario.Focus();
+                }
+                else
+                {
+                    txtUsuario.Text = "Usuario o Email";
+                    txtUsuario.ForeColor = Color.Gray;
+                }
+
+                // Mostrar el formulario de login nuevamente
+                this.Show();
+                this.WindowState = FormWindowState.Normal;
+                this.BringToFront();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al procesar cierre del dashboard: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
+                // En caso de error, mostrar el login de todos modos
+                this.Show();
             }
         }
 
@@ -161,6 +237,14 @@ namespace Veterinaria.App
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            // Si hay una instancia del dashboard activa, cerrarla primero
+            if (_dashboardInstance != null && !_dashboardInstance.IsDisposed)
+            {
+                _dashboardInstance.FormClosed -= Dashboard_FormClosed;
+                _dashboardInstance.Close();
+                _dashboardInstance = null;
+            }
+
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 var result = MessageBox.Show("¿Está seguro que desea salir de la aplicación?", 
@@ -173,6 +257,8 @@ namespace Veterinaria.App
                 }
             }
             
+            // Asegurar logout antes de cerrar
+            AuthController.Logout();
             base.OnFormClosing(e);
         }
     }

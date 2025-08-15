@@ -448,31 +448,38 @@ namespace Veterinaria.App
 
             if (result == DialogResult.Yes)
             {
+                // Hacer logout pero NO crear nuevo formulario de login
                 AuthController.Logout();
                 
-                // Crear y mostrar formulario de login
-                var loginForm = new Login();
-                loginForm.Show();
-                
-                // Cerrar dashboard
-                this.Hide();
+                // Cerrar el dashboard - esto hará que se regrese al login automáticamente
+                this.Close();
             }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            var result = MessageBox.Show("¿Está seguro que desea salir del sistema?", 
-                "Confirmar Salida", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-
-            if (result == DialogResult.No)
+            // Solo preguntar si el usuario está cerrando manualmente (no cuando se hace logout)
+            if (e.CloseReason == CloseReason.UserClosing && AuthController.EstaAutenticado)
             {
-                e.Cancel = true;
-                return;
+                var result = MessageBox.Show("¿Está seguro que desea salir del sistema?", 
+                    "Confirmar Salida", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                if (result == DialogResult.No)
+                {
+                    e.Cancel = true;
+                    return;
+                }
             }
 
             // Limpiar recursos de navegación
             _navigationManager?.Dispose();
-            AuthController.Logout();
+            
+            // Si aún está autenticado, hacer logout (por si cerró directamente sin usar logout)
+            if (AuthController.EstaAutenticado)
+            {
+                AuthController.Logout();
+            }
+            
             base.OnFormClosing(e);
         }
     }
