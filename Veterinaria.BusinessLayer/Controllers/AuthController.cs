@@ -9,12 +9,12 @@ namespace Veterinaria.BusinessLayer.Controllers
     /// </summary>
     public class AuthController
     {
-        private static Persona? _usuarioActual;
+        private static Personal? _usuarioActual;
 
         /// <summary>
         /// Usuario actualmente autenticado
         /// </summary>
-        public static Persona? UsuarioActual => _usuarioActual;
+        public static Personal? UsuarioActual => _usuarioActual;
 
         /// <summary>
         /// Verifica si hay un usuario autenticado
@@ -39,43 +39,34 @@ namespace Veterinaria.BusinessLayer.Controllers
                     return new AuthResult { Exitoso = false, Mensaje = "La contraseña es requerida" };
 
                 // Buscar usuario por nombre de usuario o email
-                var usuarioEncontrado = await Task.Run(() => 
-                    Persona.ValidarLogin(usuario, contrasena));
+                var usuarioEncontrado = await Task.Run(() =>
+                    Personal.ValidarLogin(usuario, contrasena));
 
                 if (usuarioEncontrado == null)
                 {
-                    return new AuthResult 
-                    { 
-                        Exitoso = false, 
-                        Mensaje = "Usuario o contraseña incorrectos" 
-                    };
-                }
-
-                if (!usuarioEncontrado.Activo)
-                {
-                    return new AuthResult 
-                    { 
-                        Exitoso = false, 
-                        Mensaje = "El usuario está inactivo. Contacte al administrador." 
+                    return new AuthResult
+                    {
+                        Exitoso = false,
+                        Mensaje = "Usuario o contraseña incorrectos"
                     };
                 }
 
                 // Login exitoso
                 _usuarioActual = usuarioEncontrado;
-                
-                return new AuthResult 
-                { 
-                    Exitoso = true, 
-                    Mensaje = "Login exitoso", 
-                    Usuario = usuarioEncontrado 
+
+                return new AuthResult
+                {
+                    Exitoso = true,
+                    Mensaje = "Login exitoso",
+                    Usuario = usuarioEncontrado
                 };
             }
             catch (Exception ex)
             {
-                return new AuthResult 
-                { 
-                    Exitoso = false, 
-                    Mensaje = $"Error durante la autenticación: {ex.Message}" 
+                return new AuthResult
+                {
+                    Exitoso = false,
+                    Mensaje = $"Error durante la autenticación: {ex.Message}"
                 };
             }
         }
@@ -98,42 +89,44 @@ namespace Veterinaria.BusinessLayer.Controllers
                     return new AuthResult { Exitoso = false, Mensaje = "La contraseña es requerida" };
 
                 // Buscar usuario por nombre de usuario o email
-                var usuarioEncontrado = Persona.ValidarLogin(usuario, contrasena);
+                var usuarioEncontrado = Personal.ValidarLogin(usuario, contrasena);
 
                 if (usuarioEncontrado == null)
                 {
-                    return new AuthResult 
-                    { 
-                        Exitoso = false, 
-                        Mensaje = "Usuario o contraseña incorrectos" 
+                    return new AuthResult
+                    {
+                        Exitoso = false,
+                        Mensaje = "Usuario o contraseña incorrectos"
                     };
                 }
 
-                if (!usuarioEncontrado.Activo)
-                {
-                    return new AuthResult 
-                    { 
-                        Exitoso = false, 
-                        Mensaje = "El usuario está inactivo. Contacte al administrador." 
-                    };
-                }
+                // Personal no tiene propiedad Activo en la base de datos actual
+                // Comentamos esta validación por ahora
+                // if (!usuarioEncontrado.Activo)
+                // {
+                //     return new AuthResult 
+                //     { 
+                //         Exitoso = false, 
+                //         Mensaje = "El usuario está inactivo. Contacte al administrador." 
+                //     };
+                // }
 
                 // Login exitoso
                 _usuarioActual = usuarioEncontrado;
-                
-                return new AuthResult 
-                { 
-                    Exitoso = true, 
-                    Mensaje = "Login exitoso", 
-                    Usuario = usuarioEncontrado 
+
+                return new AuthResult
+                {
+                    Exitoso = true,
+                    Mensaje = "Login exitoso",
+                    Usuario = usuarioEncontrado
                 };
             }
             catch (Exception ex)
             {
-                return new AuthResult 
-                { 
-                    Exitoso = false, 
-                    Mensaje = $"Error durante la autenticación: {ex.Message}" 
+                return new AuthResult
+                {
+                    Exitoso = false,
+                    Mensaje = $"Error durante la autenticación: {ex.Message}"
                 };
             }
         }
@@ -154,7 +147,7 @@ namespace Veterinaria.BusinessLayer.Controllers
         public static bool TieneRol(string rol)
         {
             if (!EstaAutenticado) return false;
-            
+
             // Aquí puedes implementar lógica de roles más compleja
             // Por ahora, verificamos si el usuario es admin
             return _usuarioActual?.Usuario?.ToLower() == "admin";
@@ -187,7 +180,7 @@ namespace Veterinaria.BusinessLayer.Controllers
     {
         public bool Exitoso { get; set; }
         public string Mensaje { get; set; } = string.Empty;
-        public Persona? Usuario { get; set; }
+        public Personal? Usuario { get; set; }
     }
 
     /// <summary>

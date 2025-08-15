@@ -20,7 +20,7 @@ namespace Veterinaria.ModelLayer
         };
         protected override bool Timestamps { get; set; } = true;
 
-        // Propiedades públicas
+        // Propiedades pï¿½blicas
         public int Id { get; set; }
         public DateTime? FechaContratacion { get; set; }
         public string Nombre { get; set; } = string.Empty;
@@ -44,7 +44,7 @@ namespace Veterinaria.ModelLayer
             Contrasena = contrasena;
         }
 
-        // Métodos de conveniencia
+        // Mï¿½todos de conveniencia
         public static Personal? BuscarPorUsuario(string usuario)
         {
             return Where("usuario", usuario).Get().Cast<Personal>().FirstOrDefault();
@@ -66,7 +66,7 @@ namespace Veterinaria.ModelLayer
             return $"{Nombre} {Apellido}";
         }
 
-        // Relación con PersonalRol
+        // Relaciï¿½n con PersonalRol
         public List<PersonalRol> GetRoles()
         {
             return PersonalRol.Where("personal_id", Id).Get().Cast<PersonalRol>().ToList();
@@ -81,7 +81,7 @@ namespace Veterinaria.ModelLayer
         }
 
         /// <summary>
-        /// Verifica si el personal tiene un rol específico
+        /// Verifica si el personal tiene un rol especï¿½fico
         /// </summary>
         public bool TieneRol(string rol)
         {
@@ -118,17 +118,40 @@ namespace Veterinaria.ModelLayer
         }
 
         /// <summary>
+        /// MÃ©todo alias para ValidarCredenciales - para compatibilidad con AuthController
+        /// </summary>
+        public static Personal? ValidarLogin(string usuario, string contrasena)
+        {
+            // Intentar buscar por usuario primero
+            var personal = BuscarPorUsuario(usuario);
+            
+            // Si no encuentra por usuario, intentar por email
+            if (personal == null)
+            {
+                personal = BuscarPorEmail(usuario);
+            }
+            
+            // Verificar contraseÃ±a
+            if (personal != null && personal.Contrasena == contrasena)
+            {
+                return personal;
+            }
+            
+            return null;
+        }
+
+        /// <summary>
         /// Asigna un rol al personal
         /// </summary>
         public (bool Success, string Message) AsignarRol(string rol)
         {
             try
             {
-                // Verificar que el rol sea válido
+                // Verificar que el rol sea vï¿½lido
                 var rolesValidos = new[] { "Veterinario", "Auxiliar", "Recepcionista", "Administrador" };
                 if (!rolesValidos.Contains(rol))
                 {
-                    return (false, "Rol no válido");
+                    return (false, "Rol no vï¿½lido");
                 }
 
                 // Verificar si ya tiene el rol
@@ -154,7 +177,7 @@ namespace Veterinaria.ModelLayer
             }
         }
 
-        // Relación con Diagnósticos
+        // Relaciï¿½n con Diagnï¿½sticos
         public List<Diagnostico> GetDiagnosticos()
         {
             return Diagnostico.Where("personal_id", Id).Get().Cast<Diagnostico>().ToList();
