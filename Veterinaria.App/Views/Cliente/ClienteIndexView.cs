@@ -45,6 +45,18 @@ namespace Veterinaria.App.Views.Cliente
 
             // Eventos del TextBox de búsqueda
             txtBuscar.KeyDown += TxtBuscar_KeyDown;
+            txtBuscar.TextChanged += (sender, e) =>
+            {
+                // Iniciar búsqueda automática al cambiar el texto
+                if (!string.IsNullOrWhiteSpace(txtBuscar.Text))
+                {
+                    BuscarClientes();
+                }
+                else
+                {
+                    CargarClientes(); // Si está vacío, recargar todos los clientes
+                }
+            };
 
             // Eventos del DataGridView
             dgvClientes.CellDoubleClick += DgvClientes_CellDoubleClick;
@@ -116,7 +128,7 @@ namespace Veterinaria.App.Views.Cliente
             {
                 Name = "BtnEditar",
                 HeaderText = "",
-                Text = "✏️ Editar",
+                Text = "Editar",
                 UseColumnTextForButtonValue = true,
                 Width = 90,
                 DefaultCellStyle = new DataGridViewCellStyle
@@ -135,7 +147,7 @@ namespace Veterinaria.App.Views.Cliente
             {
                 Name = "BtnEliminar",
                 HeaderText = "",
-                Text = "🗑️ Eliminar",
+                Text = "Eliminar",
                 UseColumnTextForButtonValue = true,
                 Width = 90,
                 DefaultCellStyle = new DataGridViewCellStyle
@@ -368,7 +380,7 @@ namespace Veterinaria.App.Views.Cliente
                     }
 
                     // Dibujar el texto del botón
-                    string buttonText = columnName == "BtnEditar" ? "✏️ Editar" : "🗑️ Eliminar";
+                    string buttonText = columnName == "BtnEditar" ? "Editar" : "Eliminar";
                     using (var textBrush = new SolidBrush(Color.White))
                     {
                         var stringFormat = new StringFormat
