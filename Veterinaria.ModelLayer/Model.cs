@@ -284,18 +284,98 @@ namespace Veterinaria.ModelLayer
         // Métodos auxiliares
         private void SetProperty(string name, object? value)
         {
+            // Intentar primero con el nombre exacto
             var property = typeof(T).GetProperty(name,
                 System.Reflection.BindingFlags.Public |
                 System.Reflection.BindingFlags.Instance |
                 System.Reflection.BindingFlags.IgnoreCase);
 
+            // Si no se encuentra, intentar convertir de snake_case a PascalCase
+            if (property == null)
+            {
+                string pascalCaseName = ConvertToPascalCase(name);
+                property = typeof(T).GetProperty(pascalCaseName,
+                    System.Reflection.BindingFlags.Public |
+                    System.Reflection.BindingFlags.Instance);
+            }
+
             if (property != null && property.CanWrite)
             {
-                if (value != DBNull.Value)
+                if (value != DBNull.Value && value != null)
                 {
-                    property.SetValue(this, value);
+                    // Convertir el tipo si es necesario
+                    var convertedValue = ConvertValueToPropertyType(value, property.PropertyType);
+                    property.SetValue(this, convertedValue);
+                }
+                else if (IsNullableType(property.PropertyType))
+                {
+                    property.SetValue(this, null);
                 }
             }
+        }
+
+        /// <summary>
+        /// Convierte un nombre de snake_case a PascalCase
+        /// Ejemplo: cliente_id -> ClienteId
+        /// </summary>
+        private string ConvertToPascalCase(string snakeCase)
+        {
+            if (string.IsNullOrEmpty(snakeCase))
+                return snakeCase;
+
+            var parts = snakeCase.Split('_');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (!string.IsNullOrEmpty(parts[i]))
+                {
+                    parts[i] = char.ToUpperInvariant(parts[i][0]) + parts[i].Substring(1).ToLowerInvariant();
+                }
+            }
+            return string.Join("", parts);
+        }
+
+        /// <summary>
+        /// Convierte un valor al tipo de la propiedad
+        /// </summary>
+        private object? ConvertValueToPropertyType(object value, Type targetType)
+        {
+            if (value == null || value == DBNull.Value)
+                return null;
+
+            // Si el tipo ya es correcto, devolverlo tal como está
+            if (targetType.IsAssignableFrom(value.GetType()))
+                return value;
+
+            // Manejar tipos nullable
+            Type underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+            // Conversiones específicas
+            if (underlyingType == typeof(int) && value is long longValue)
+                return (int)longValue;
+            
+            if (underlyingType == typeof(decimal) && (value is double || value is float))
+                return Convert.ToDecimal(value);
+
+            if (underlyingType == typeof(DateTime) && value is string dateString)
+                return DateTime.Parse(dateString);
+
+            // Conversión genérica
+            try
+            {
+                return Convert.ChangeType(value, underlyingType);
+            }
+            catch
+            {
+                return value;
+            }
+        }
+
+        /// <summary>
+        /// Verifica si un tipo es nullable
+        /// </summary>
+        private bool IsNullableType(Type type)
+        {
+            return !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
         }
 
         public string GetTable()

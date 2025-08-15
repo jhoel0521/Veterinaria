@@ -245,20 +245,100 @@ namespace Veterinaria.DataLayer.QueryBuilder
             for (int i = 0; i < reader.FieldCount; i++)
             {
                 var columnName = reader.GetName(i);
+                var value = reader.GetValue(i);
+
+                // Intentar primero con el nombre exacto
                 var property = properties.FirstOrDefault(p => 
                     p.Name.Equals(columnName, StringComparison.OrdinalIgnoreCase));
 
+                // Si no se encuentra, intentar convertir de snake_case a PascalCase
+                if (property == null)
+                {
+                    string pascalCaseName = ConvertToPascalCase(columnName);
+                    property = properties.FirstOrDefault(p => 
+                        p.Name.Equals(pascalCaseName, StringComparison.OrdinalIgnoreCase));
+                }
+
                 if (property != null && property.CanWrite)
                 {
-                    var value = reader.GetValue(i);
-                    if (value != DBNull.Value)
+                    if (value != DBNull.Value && value != null)
                     {
-                        property.SetValue(instance, value);
+                        // Convertir el tipo si es necesario
+                        var convertedValue = ConvertValueToPropertyType(value, property.PropertyType);
+                        property.SetValue(instance, convertedValue);
+                    }
+                    else if (IsNullableType(property.PropertyType))
+                    {
+                        property.SetValue(instance, null);
                     }
                 }
             }
 
             return instance!;
+        }
+
+        /// <summary>
+        /// Convierte un nombre de snake_case a PascalCase
+        /// Ejemplo: cliente_id -> ClienteId
+        /// </summary>
+        private string ConvertToPascalCase(string snakeCase)
+        {
+            if (string.IsNullOrEmpty(snakeCase))
+                return snakeCase;
+
+            var parts = snakeCase.Split('_');
+            for (int i = 0; i < parts.Length; i++)
+            {
+                if (!string.IsNullOrEmpty(parts[i]))
+                {
+                    parts[i] = char.ToUpperInvariant(parts[i][0]) + parts[i].Substring(1).ToLowerInvariant();
+                }
+            }
+            return string.Join("", parts);
+        }
+
+        /// <summary>
+        /// Convierte un valor al tipo de la propiedad
+        /// </summary>
+        private object? ConvertValueToPropertyType(object value, Type targetType)
+        {
+            if (value == null || value == DBNull.Value)
+                return null;
+
+            // Si el tipo ya es correcto, devolverlo tal como está
+            if (targetType.IsAssignableFrom(value.GetType()))
+                return value;
+
+            // Manejar tipos nullable
+            Type underlyingType = Nullable.GetUnderlyingType(targetType) ?? targetType;
+
+            // Conversiones específicas
+            if (underlyingType == typeof(int) && value is long longValue)
+                return (int)longValue;
+            
+            if (underlyingType == typeof(decimal) && (value is double || value is float))
+                return Convert.ToDecimal(value);
+
+            if (underlyingType == typeof(DateTime) && value is string dateString)
+                return DateTime.Parse(dateString);
+
+            // Conversión genérica
+            try
+            {
+                return Convert.ChangeType(value, underlyingType);
+            }
+            catch
+            {
+                return value;
+            }
+        }
+
+        /// <summary>
+        /// Verifica si un tipo es nullable
+        /// </summary>
+        private bool IsNullableType(Type type)
+        {
+            return !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
         }
 
         private void LoadRelations(List<object> results)
