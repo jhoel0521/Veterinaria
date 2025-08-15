@@ -13,13 +13,13 @@ namespace Veterinaria.BusinessLayer.Controllers
     public static class ProductoController
     {
         /// <summary>
-        /// Obtiene todos los productos activos con paginación opcional
+        /// Obtiene todos los productos con paginación opcional
         /// </summary>
         public static List<Producto> GetAll(int? limit = null)
         {
             try
             {
-                var query = Producto.Where("activo", true).OrderBy("nombre");
+                var query = Producto.OrderBy("nombre");
                 
                 if (limit.HasValue)
                 {
@@ -35,7 +35,7 @@ namespace Veterinaria.BusinessLayer.Controllers
         }
 
         /// <summary>
-        /// Busca productos por texto (código, nombre, descripción, categoría)
+        /// Busca productos por texto (nombre)
         /// </summary>
         public static List<Producto> Search(string searchText)
         {
@@ -46,35 +46,14 @@ namespace Veterinaria.BusinessLayer.Controllers
                     return GetAll();
                 }
 
-                var productos = new List<Producto>();
                 var searchTerm = $"%{searchText.Trim()}%";
-
-                // Buscar por código
-                var productosPorCodigo = Producto.Where("codigo", SqlOperator.Like, searchTerm)
-                                               .Where("activo", true)
-                                               .Get().Cast<Producto>().ToList();
-                productos.AddRange(productosPorCodigo);
 
                 // Buscar por nombre
                 var productosPorNombre = Producto.Where("nombre", SqlOperator.Like, searchTerm)
-                                               .Where("activo", true)
                                                .Get().Cast<Producto>().ToList();
-                productos.AddRange(productosPorNombre);
-
-                // Buscar por descripción
-                var productosPorDescripcion = Producto.Where("descripcion", SqlOperator.Like, searchTerm)
-                                                    .Where("activo", true)
-                                                    .Get().Cast<Producto>().ToList();
-                productos.AddRange(productosPorDescripcion);
-
-                // Buscar por categoría
-                var productosPorCategoria = Producto.Where("categoria", SqlOperator.Like, searchTerm)
-                                                  .Where("activo", true)
-                                                  .Get().Cast<Producto>().ToList();
-                productos.AddRange(productosPorCategoria);
 
                 // Eliminar duplicados y ordenar
-                return productos
+                return productosPorNombre
                     .GroupBy(p => p.Id)
                     .Select(g => g.First())
                     .OrderBy(p => p.Nombre)
@@ -96,7 +75,18 @@ namespace Veterinaria.BusinessLayer.Controllers
                 if (string.IsNullOrWhiteSpace(categoria))
                     return GetAll();
 
-                return Producto.PorCategoria(categoria.Trim());
+                // Buscar categoría por nombre
+                var categoriaObj = Categoria.Where("nombre", SqlOperator.Like, $"%{categoria.Trim()}%")
+                                           .First() as Categoria;
+                
+                if (categoriaObj != null)
+                {
+                    // Buscar productos por categoria_id
+                    return Producto.Where("categoria_id", categoriaObj.Id)
+                                  .Get().Cast<Producto>().ToList();
+                }
+
+                return new List<Producto>();
             }
             catch (Exception ex)
             {
@@ -111,7 +101,8 @@ namespace Veterinaria.BusinessLayer.Controllers
         {
             try
             {
-                return Producto.ProductosConStockBajo();
+                // Como no hay campo de stock, devolver lista vacía por ahora
+                return new List<Producto>();
             }
             catch (Exception ex)
             {
@@ -160,64 +151,39 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// Crea un nuevo producto
         /// </summary>
         public static (bool Success, string Message, Producto? Producto) Create(
-            string codigo,
             string nombre,
-            string? descripcion = null,
             decimal precio = 0,
-            int stock = 0,
-            int stockMinimo = 0,
-            string? categoria = null,
-            string? proveedor = null)
+            bool requiereDiagnostico = true,
+            int categoriaId = 1)
         {
             try
             {
                 // Validaciones
-                if (string.IsNullOrWhiteSpace(codigo))
-                    return (false, "El código es requerido", null);
-
                 if (string.IsNullOrWhiteSpace(nombre))
                     return (false, "El nombre es requerido", null);
 
                 if (precio < 0)
                     return (false, "El precio no puede ser negativo", null);
 
-                if (stock < 0)
-                    return (false, "El stock no puede ser negativo", null);
-
-                if (stockMinimo < 0)
-                    return (false, "El stock mínimo no puede ser negativo", null);
-
-                // Verificar que el código no esté en uso
-                var existingProduct = GetByCodigo(codigo);
-                if (existingProduct != null)
-                    return (false, "Ya existe un producto con ese código", null);
+                if (categoriaId <= 0)
+                    return (false, "La categoría es requerida", null);
 
                 // Crear producto
                 var producto = new Producto
                 {
-                    Codigo = codigo.Trim().ToUpper(),
                     Nombre = nombre.Trim(),
-                    Descripcion = string.IsNullOrWhiteSpace(descripcion) ? null : descripcion.Trim(),
                     Precio = precio,
-                    Stock = stock,
-                    StockMinimo = stockMinimo,
-                    Categoria = string.IsNullOrWhiteSpace(categoria) ? null : categoria.Trim(),
-                    Proveedor = string.IsNullOrWhiteSpace(proveedor) ? null : proveedor.Trim(),
-                    Activo = true
+                    RequiereDiagnostico = requiereDiagnostico,
+                    CategoriaId = categoriaId
                 };
 
                 // Llenar con atributos fillable
                 var attributes = new Dictionary<string, object?>
                 {
-                    { "codigo", producto.Codigo },
                     { "nombre", producto.Nombre },
-                    { "descripcion", producto.Descripcion },
                     { "precio", producto.Precio },
-                    { "stock", producto.Stock },
-                    { "stock_minimo", producto.StockMinimo },
-                    { "categoria", producto.Categoria },
-                    { "proveedor", producto.Proveedor },
-                    { "activo", producto.Activo }
+                    { "requiere_diagnostico", producto.RequiereDiagnostico },
+                    { "categoria_id", producto.CategoriaId }
                 };
 
                 producto.Fill(attributes).Save();
@@ -335,7 +301,7 @@ namespace Veterinaria.BusinessLayer.Controllers
                     return (false, "Producto no encontrado");
 
                 // Verificar si el producto tiene ventas asociadas
-                var tieneVentas = DetalleVenta.Where("producto_id", id).Get().Any();
+                var tieneVentas = DetalleFactura.Where("producto_id", id).Count() > 0;
 
                 if (tieneVentas)
                 {
@@ -393,14 +359,12 @@ namespace Veterinaria.BusinessLayer.Controllers
         {
             try
             {
-                return Producto.Where("activo", true)
-                              .Get()
-                              .Cast<Producto>()
-                              .Select(p => p.Categoria)
-                              .Where(c => !string.IsNullOrEmpty(c))
-                              .Distinct()
-                              .OrderBy(c => c)
-                              .ToList()!;
+                return Categoria.All()
+                               .Select(c => c.Nombre)
+                               .Where(c => !string.IsNullOrEmpty(c))
+                               .Distinct()
+                               .OrderBy(c => c)
+                               .ToList();
             }
             catch (Exception ex)
             {
@@ -415,14 +379,8 @@ namespace Veterinaria.BusinessLayer.Controllers
         {
             try
             {
-                return Producto.Where("activo", true)
-                              .Get()
-                              .Cast<Producto>()
-                              .Select(p => p.Proveedor)
-                              .Where(p => !string.IsNullOrEmpty(p))
-                              .Distinct()
-                              .OrderBy(p => p)
-                              .ToList()!;
+                // Como no hay campo proveedor en el modelo actual, devolver lista vacía
+                return new List<string>();
             }
             catch (Exception ex)
             {
@@ -438,12 +396,12 @@ namespace Veterinaria.BusinessLayer.Controllers
             try
             {
                 var total = Producto.Count();
-                var activos = Producto.Where("activo", true).Count();
-                var inactivos = total - activos;
+                var activos = total; // Como no hay campo activo, todos son activos
+                var inactivos = 0;
                 
                 var productosActivos = GetAll();
-                var conStockBajo = productosActivos.Count(p => p.Stock <= p.StockMinimo);
-                var valorInventario = productosActivos.Sum(p => p.Stock * p.Precio);
+                var conStockBajo = 0; // Como no hay stock, no hay productos con stock bajo
+                var valorInventario = productosActivos.Sum(p => p.Precio); // Solo precio, sin stock
 
                 return (total, activos, inactivos, conStockBajo, valorInventario);
             }
