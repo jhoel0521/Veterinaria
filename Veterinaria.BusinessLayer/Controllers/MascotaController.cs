@@ -15,18 +15,18 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Obtiene todas las mascotas activas con paginación opcional
         /// </summary>
-        public static List<Mascota> GetAll(int? limit = null)
+        public static List<Animal> GetAll(int? limit = null)
         {
             try
             {
-                var query = Mascota.Where("activo", true).OrderBy("nombre");
+                var query = Animal.Where("activo", true).OrderBy("nombre");
                 
                 if (limit.HasValue)
                 {
                     query = query.Limit(limit.Value);
                 }
 
-                return query.Get().Cast<Mascota>().ToList();
+                return query.Get().Cast<Animal>().ToList();
             }
             catch (Exception ex)
             {
@@ -37,7 +37,7 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Busca mascotas por texto (nombre, especie, raza) y por dueño
         /// </summary>
-        public static List<Mascota> Search(string searchText)
+        public static List<Animal> Search(string searchText)
         {
             try
             {
@@ -46,36 +46,26 @@ namespace Veterinaria.BusinessLayer.Controllers
                     return GetAll();
                 }
 
-                var mascotas = new List<Mascota>();
+                var mascotas = new List<Animal>();
                 var searchTerm = $"%{searchText.Trim()}%";
 
                 // Buscar por nombre
-                var mascotasPorNombre = Mascota.Where("nombre", SqlOperator.Like, searchTerm)
-                                             .Where("activo", true)
-                                             .Get().Cast<Mascota>().ToList();
+                var mascotasPorNombre = Animal.Where("nombre", SqlOperator.Like, searchTerm)
+                                             .Get().Cast<Animal>().ToList();
                 mascotas.AddRange(mascotasPorNombre);
 
-                // Buscar por especie
-                var mascotasPorEspecie = Mascota.Where("especie", SqlOperator.Like, searchTerm)
-                                               .Where("activo", true)
-                                               .Get().Cast<Mascota>().ToList();
+                // Buscar por tipo
+                var mascotasPorEspecie = Animal.Where("tipo", SqlOperator.Like, searchTerm)
+                                               .Get().Cast<Animal>().ToList();
                 mascotas.AddRange(mascotasPorEspecie);
 
-                // Buscar por raza
-                var mascotasPorRaza = Mascota.Where("raza", SqlOperator.Like, searchTerm)
-                                            .Where("activo", true)
-                                            .Get().Cast<Mascota>().ToList();
-                mascotas.AddRange(mascotasPorRaza);
-
                 // Buscar por nombre del dueño (cliente)
-                var clientes = Cliente.Where("nombre", SqlOperator.Like, searchTerm)
-                                    .Where("activo", true)
-                                    .Get().Cast<Cliente>().ToList();
+                var clientes = PersonaFisica.Where("nombre", SqlOperator.Like, searchTerm)
+                                    .Get().Cast<PersonaFisica>().ToList();
 
-                // También buscar por apellido del cliente
-                var clientesPorApellido = Cliente.Where("apellido", SqlOperator.Like, searchTerm)
-                                               .Where("activo", true)
-                                               .Get().Cast<Cliente>().ToList();
+                // También buscar por apellido del cliente (usando PersonaFisica)
+                var clientesPorApellido = PersonaFisica.Where("apellido", SqlOperator.Like, searchTerm)
+                                               .Get().Cast<PersonaFisica>().ToList();
                 
                 // Combinar ambas listas de clientes
                 var todosLosClientes = clientes.Concat(clientesPorApellido)
@@ -85,9 +75,8 @@ namespace Veterinaria.BusinessLayer.Controllers
 
                 foreach (var cliente in todosLosClientes)
                 {
-                    var mascotasDelCliente = Mascota.Where("cliente_id", cliente.Id)
-                                                   .Where("activo", true)
-                                                   .Get().Cast<Mascota>().ToList();
+                    var mascotasDelCliente = Animal.Where("persona_id", cliente.Id)
+                                                   .Get().Cast<Animal>().ToList();
                     mascotas.AddRange(mascotasDelCliente);
                 }
 
@@ -107,14 +96,14 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Busca mascotas por especie
         /// </summary>
-        public static List<Mascota> SearchByEspecie(string especie)
+        public static List<Animal> SearchByEspecie(string especie)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(especie))
                     return GetAll();
 
-                return Mascota.PorEspecie(especie.Trim());
+                return Animal.PorTipo(especie.Trim());
             }
             catch (Exception ex)
             {
@@ -125,14 +114,14 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Busca mascotas por raza
         /// </summary>
-        public static List<Mascota> SearchByRaza(string raza)
+        public static List<Animal> SearchByRaza(string raza)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(raza))
                     return GetAll();
 
-                return Mascota.PorRaza(raza.Trim());
+                return Animal.PorTipo(raza.Trim());
             }
             catch (Exception ex)
             {
@@ -143,13 +132,12 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Busca mascotas por cliente/dueño
         /// </summary>
-        public static List<Mascota> SearchByCliente(int clienteId)
+        public static List<Animal> SearchByCliente(int clienteId)
         {
             try
             {
-                return Mascota.Where("cliente_id", clienteId)
-                             .Where("activo", true)
-                             .Get().Cast<Mascota>().ToList();
+                return Animal.Where("persona_id", clienteId)
+                             .Get().Cast<Animal>().ToList();
             }
             catch (Exception ex)
             {
@@ -160,11 +148,11 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Obtiene una mascota por ID
         /// </summary>
-        public static Mascota? GetById(int id)
+        public static Animal? GetById(int id)
         {
             try
             {
-                return Mascota.Find(id);
+                return Animal.Find(id);
             }
             catch (Exception ex)
             {
@@ -175,72 +163,51 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Crea una nueva mascota
         /// </summary>
-        public static (bool Success, string Message, Mascota? Mascota) Create(
-            int clienteId,
+        public static (bool Success, string Message, Animal? Animal) Create(
+            int personaId,
             string nombre, 
-            string especie, 
-            string? raza = null, 
-            int? edad = null,
-            decimal? peso = null,
-            string? color = null,
+            string tipo, 
+            DateTime? fechaNacimiento = null, 
             string? observaciones = null)
         {
             try
             {
                 // Validaciones
-                if (clienteId <= 0)
-                    return (false, "El cliente es requerido", null);
+                if (personaId <= 0)
+                    return (false, "La persona es requerida", null);
 
                 if (string.IsNullOrWhiteSpace(nombre))
                     return (false, "El nombre es requerido", null);
 
-                if (string.IsNullOrWhiteSpace(especie))
-                    return (false, "La especie es requerida", null);
+                if (string.IsNullOrWhiteSpace(tipo))
+                    return (false, "El tipo es requerido", null);
 
-                // Verificar que el cliente existe
-                var cliente = Cliente.Find(clienteId);
-                if (cliente == null)
-                    return (false, "El cliente seleccionado no existe", null);
+                // Verificar que la persona existe
+                var persona = Persona.Find(personaId);
+                if (persona == null)
+                    return (false, "La persona seleccionada no existe", null);
 
-                // Validar edad
-                if (edad.HasValue && edad < 0)
-                    return (false, "La edad no puede ser negativa", null);
-
-                // Validar peso
-                if (peso.HasValue && peso <= 0)
-                    return (false, "El peso debe ser mayor que cero", null);
-
-                // Crear mascota
-                var mascota = new Mascota
+                // Crear animal
+                var animal = new Animal
                 {
-                    ClienteId = clienteId,
+                    PersonaId = personaId,
                     Nombre = nombre.Trim(),
-                    Especie = especie.Trim(),
-                    Raza = string.IsNullOrWhiteSpace(raza) ? null : raza.Trim(),
-                    Edad = edad,
-                    Peso = peso,
-                    Color = string.IsNullOrWhiteSpace(color) ? null : color.Trim(),
-                    Observaciones = string.IsNullOrWhiteSpace(observaciones) ? null : observaciones.Trim(),
-                    Activo = true
+                    Tipo = tipo.Trim(),
+                    FechaNacimiento = fechaNacimiento
                 };
 
                 // Llenar con atributos fillable
                 var attributes = new Dictionary<string, object?>
                 {
-                    { "cliente_id", mascota.ClienteId },
-                    { "nombre", mascota.Nombre },
-                    { "especie", mascota.Especie },
-                    { "raza", mascota.Raza },
-                    { "edad", mascota.Edad },
-                    { "peso", mascota.Peso },
-                    { "color", mascota.Color },
-                    { "observaciones", mascota.Observaciones },
-                    { "activo", mascota.Activo }
+                    { "persona_id", animal.PersonaId },
+                    { "nombre", animal.Nombre },
+                    { "tipo", animal.Tipo },
+                    { "fecha_nacimiento", animal.FechaNacimiento }
                 };
 
-                mascota.Fill(attributes).Save();
+                animal.Fill(attributes).Save();
 
-                return (true, "Mascota creada exitosamente", mascota);
+                return (true, "Animal creado exitosamente", animal);
             }
             catch (Exception ex)
             {
@@ -251,62 +218,47 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Actualiza una mascota existente
         /// </summary>
-        public static (bool Success, string Message, Mascota? Mascota) Update(
+        public static (bool Success, string Message, Animal? Animal) Update(
             int id,
-            int clienteId,
+            int personaId,
             string nombre, 
-            string especie, 
-            string? raza = null, 
-            int? edad = null,
-            decimal? peso = null,
-            string? color = null,
+            string tipo, 
+            DateTime? fechaNacimiento = null,
             string? observaciones = null)
         {
             try
             {
-                var mascota = GetById(id);
-                if (mascota == null)
-                    return (false, "Mascota no encontrada", null);
+                var animal = GetById(id);
+                if (animal == null)
+                    return (false, "Animal no encontrado", null);
 
                 // Validaciones
-                if (clienteId <= 0)
-                    return (false, "El cliente es requerido", null);
+                if (personaId <= 0)
+                    return (false, "La persona es requerida", null);
 
                 if (string.IsNullOrWhiteSpace(nombre))
                     return (false, "El nombre es requerido", null);
 
-                if (string.IsNullOrWhiteSpace(especie))
-                    return (false, "La especie es requerida", null);
+                if (string.IsNullOrWhiteSpace(tipo))
+                    return (false, "El tipo es requerido", null);
 
-                // Verificar que el cliente existe
-                var cliente = Cliente.Find(clienteId);
-                if (cliente == null)
-                    return (false, "El cliente seleccionado no existe", null);
-
-                // Validar edad
-                if (edad.HasValue && edad < 0)
-                    return (false, "La edad no puede ser negativa", null);
-
-                // Validar peso
-                if (peso.HasValue && peso <= 0)
-                    return (false, "El peso debe ser mayor que cero", null);
+                // Verificar que la persona existe
+                var persona = Persona.Find(personaId);
+                if (persona == null)
+                    return (false, "La persona seleccionada no existe", null);
 
                 // Actualizar atributos
                 var attributes = new Dictionary<string, object?>
                 {
-                    { "cliente_id", clienteId },
+                    { "persona_id", personaId },
                     { "nombre", nombre.Trim() },
-                    { "especie", especie.Trim() },
-                    { "raza", string.IsNullOrWhiteSpace(raza) ? null : raza.Trim() },
-                    { "edad", edad },
-                    { "peso", peso },
-                    { "color", string.IsNullOrWhiteSpace(color) ? null : color.Trim() },
-                    { "observaciones", string.IsNullOrWhiteSpace(observaciones) ? null : observaciones.Trim() }
+                    { "tipo", tipo.Trim() },
+                    { "fecha_nacimiento", fechaNacimiento }
                 };
 
-                mascota.Fill(attributes).Save();
+                animal.Fill(attributes).Save();
 
-                return (true, "Mascota actualizada exitosamente", mascota);
+                return (true, "Animal actualizado exitosamente", animal);
             }
             catch (Exception ex)
             {
@@ -372,10 +324,8 @@ namespace Veterinaria.BusinessLayer.Controllers
         {
             try
             {
-                return Mascota.Where("activo", true)
-                             .Get()
-                             .Cast<Mascota>()
-                             .Select(m => m.Especie)
+                return Animal.All()
+                             .Select(m => m.Tipo)
                              .Where(e => !string.IsNullOrEmpty(e))
                              .Distinct()
                              .OrderBy(e => e)
@@ -397,15 +347,14 @@ namespace Veterinaria.BusinessLayer.Controllers
                 if (string.IsNullOrWhiteSpace(especie))
                     return new List<string>();
 
-                return Mascota.Where("especie", especie)
-                             .Where("activo", true)
+                return Animal.Where("tipo", SqlOperator.Like, $"%{especie}%")
                              .Get()
-                             .Cast<Mascota>()
-                             .Select(m => m.Raza)
+                             .Cast<Animal>()
+                             .Select(m => m.Tipo)
                              .Where(r => !string.IsNullOrEmpty(r))
                              .Distinct()
                              .OrderBy(r => r)
-                             .ToList()!;
+                             .ToList();
             }
             catch (Exception ex)
             {
@@ -420,13 +369,15 @@ namespace Veterinaria.BusinessLayer.Controllers
         {
             try
             {
-                var total = Mascota.Count();
-                var activas = Mascota.Where("activo", true).Count();
-                var inactivas = total - activas;
+                var total = Animal.Count();
+                var activas = Animal.Count();
+                var inactivas = 0; // No hay campo activo en Animal
                 
                 var mascotasActivas = GetAll();
-                var cachorros = mascotasActivas.Count(m => m.EsCachorro());
-                var adultos = mascotasActivas.Count(m => m.EsAdulto());
+                var cachorros = mascotasActivas.Count(m => m.FechaNacimiento.HasValue && 
+                    m.FechaNacimiento.Value > DateTime.Now.AddYears(-1));
+                var adultos = mascotasActivas.Count(m => m.FechaNacimiento.HasValue && 
+                    m.FechaNacimiento.Value <= DateTime.Now.AddYears(-1));
 
                 return (total, activas, inactivas, cachorros, adultos);
             }
