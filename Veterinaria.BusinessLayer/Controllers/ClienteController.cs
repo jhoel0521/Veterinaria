@@ -13,20 +13,20 @@ namespace Veterinaria.BusinessLayer.Controllers
     public static class ClienteController
     {
         /// <summary>
-        /// Obtiene todos los clientes activos con paginaci�n opcional
+        /// Obtiene todos los clientes activos con paginación opcional
         /// </summary>
-        public static List<Persona> GetAll(int? limit = null)
+        public static List<PersonaFisica> GetAll(int? limit = null)
         {
             try
             {
-                var query = Persona.Where("activo", true).OrderBy("nombre");
+                var query = PersonaFisica.OrderBy("nombre");
                 
                 if (limit.HasValue)
                 {
                     query = query.Limit(limit.Value);
                 }
 
-                return query.Get().Cast<Persona>().ToList();
+                return query.Get().Cast<PersonaFisica>().ToList();
             }
             catch (Exception ex)
             {
@@ -37,7 +37,7 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Busca clientes por texto (nombre, apellido, email)
         /// </summary>
-        public static List<Persona> Search(string searchText)
+        public static List<PersonaFisica> Search(string searchText)
         {
             try
             {
@@ -46,26 +46,30 @@ namespace Veterinaria.BusinessLayer.Controllers
                     return GetAll();
                 }
 
-                var clientes = new List<Persona>();
+                var clientes = new List<PersonaFisica>();
                 var searchTerm = $"%{searchText.Trim()}%";
 
                 // Buscar por nombre
-                var clientesPorNombre = Persona.Where("nombre", SqlOperator.Like, searchTerm)
-                                             .Where("activo", true)
-                                             .Get().Cast<Persona>().ToList();
+                var clientesPorNombre = PersonaFisica.Where("nombre", SqlOperator.Like, searchTerm)
+                                             .Get().Cast<PersonaFisica>().ToList();
                 clientes.AddRange(clientesPorNombre);
 
                 // Buscar por apellido
-                var clientesPorApellido = Persona.Where("apellido", SqlOperator.Like, searchTerm)
-                                               .Where("activo", true)
-                                               .Get().Cast<Persona>().ToList();
+                var clientesPorApellido = PersonaFisica.Where("apellido", SqlOperator.Like, searchTerm)
+                                               .Get().Cast<PersonaFisica>().ToList();
                 clientes.AddRange(clientesPorApellido);
 
-                // Buscar por email (si no es null)
-                var clientesPorEmail = Persona.Where("email", SqlOperator.Like, searchTerm)
-                                            .Where("activo", true)
+                // Buscar por email a través de la relación con Persona
+                var personasConEmail = Persona.Where("email", SqlOperator.Like, searchTerm)
                                             .Get().Cast<Persona>().ToList();
-                clientes.AddRange(clientesPorEmail);
+                foreach (var persona in personasConEmail)
+                {
+                    var personaFisica = PersonaFisica.Find(persona.Id);
+                    if (personaFisica != null)
+                    {
+                        clientes.Add(personaFisica);
+                    }
+                }
 
                 // Eliminar duplicados y ordenar
                 return clientes
@@ -84,11 +88,11 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Obtiene un cliente por ID
         /// </summary>
-        public static Persona? GetById(int id)
+        public static PersonaFisica? GetById(int id)
         {
             try
             {
-                return Persona.Find(id);
+                return PersonaFisica.Find(id);
             }
             catch (Exception ex)
             {
@@ -99,7 +103,7 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Crea un nuevo cliente
         /// </summary>
-        public static (bool Success, string Message, Persona? Cliente) Create(
+        public static (bool Success, string Message, PersonaFisica? Cliente) Create(
             string nombre, 
             string apellido, 
             string? telefono = null, 
@@ -121,35 +125,43 @@ namespace Veterinaria.BusinessLayer.Controllers
                     if (!IsValidEmail(email))
                         return (false, "El formato del email no es v�lido", null);
 
-                    // Verificar que el email no est� en uso
-                    var existingClient = Persona.BuscarPorEmail(email);
+                    // Verificar que el email no esté en uso
+                    var existingClient = Persona.Where("email", email).First();
                     if (existingClient != null)
                         return (false, "Ya existe un cliente con ese email", null);
                 }
 
                 // Crear cliente
-                var cliente = new Persona
+                var cliente = new PersonaFisica(nombre.Trim(), apellido.Trim())
                 {
-                    Nombre = nombre.Trim(),
-                    Apellido = apellido.Trim(),
-                    Telefono = string.IsNullOrWhiteSpace(telefono) ? null : telefono.Trim(),
-                    Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLower(),
-                    Direccion = string.IsNullOrWhiteSpace(direccion) ? null : direccion.Trim(),
-                    Activo = true
+                    Id = 0 // Se asignará después de crear la persona base
                 };
 
-                // Llenar con atributos fillable
-                var attributes = new Dictionary<string, object?>
+                // Crear primero la persona base
+                var persona = new Persona("Fisica", email?.Trim().ToLower(), direccion?.Trim(), telefono?.Trim());
+                
+                // Llenar con atributos fillable de persona
+                var personaAttributes = new Dictionary<string, object?>
+                {
+                    { "tipo", "Fisica" },
+                    { "email", persona.Email },
+                    { "direccion", persona.Direccion },
+                    { "telefono", persona.Telefono }
+                };
+
+                persona.Fill(personaAttributes).Save();
+                
+                // Asignar el ID de la persona al cliente
+                cliente.Id = persona.Id;
+
+                // Llenar con atributos fillable de persona física
+                var clienteAttributes = new Dictionary<string, object?>
                 {
                     { "nombre", cliente.Nombre },
-                    { "apellido", cliente.Apellido },
-                    { "telefono", cliente.Telefono },
-                    { "email", cliente.Email },
-                    { "direccion", cliente.Direccion },
-                    { "activo", cliente.Activo }
+                    { "apellido", cliente.Apellido }
                 };
 
-                cliente.Fill(attributes).Save();
+                cliente.Fill(clienteAttributes).Save();
 
                 return (true, "Cliente creado exitosamente", cliente);
             }
@@ -162,7 +174,7 @@ namespace Veterinaria.BusinessLayer.Controllers
         /// <summary>
         /// Actualiza un cliente existente
         /// </summary>
-        public static (bool Success, string Message, Persona? Cliente) Update(
+        public static (bool Success, string Message, PersonaFisica? Cliente) Update(
             int id,
             string nombre, 
             string apellido, 
@@ -188,8 +200,8 @@ namespace Veterinaria.BusinessLayer.Controllers
                     if (!IsValidEmail(email))
                         return (false, "El formato del email no es v�lido", null);
 
-                    // Verificar que el email no est� en uso por otro cliente
-                    var existingClient = Persona.BuscarPorEmail(email);
+                    // Verificar que el email no esté en uso por otro cliente
+                    var existingClient = Persona.Where("email", email).First() as Persona;
                     if (existingClient != null && existingClient.Id != id)
                         return (false, "Ya existe otro cliente con ese email", null);
                 }
@@ -225,11 +237,11 @@ namespace Veterinaria.BusinessLayer.Controllers
                 if (cliente == null)
                     return (false, "Cliente no encontrado");
 
-                // Verificar si tiene mascotas o ventas asociadas
-                var mascotas = cliente.GetMascotas();
-                var ventas = cliente.GetVentas();
+                // Verificar si tiene mascotas o ventas asociadas  
+                var mascotasCount = Animal.Where("persona_id", cliente.Id).Count();
+                var ventasCount = Factura.Where("persona_id", cliente.Id).Count();
 
-                if (mascotas.Any() || ventas.Any())
+                if (mascotasCount > 0 || ventasCount > 0)
                 {
                     // Soft delete - marcar como inactivo
                     var attributes = new Dictionary<string, object?>
