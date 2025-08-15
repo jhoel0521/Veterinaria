@@ -7,12 +7,10 @@ using Veterinaria.DataLayer.QueryBuilder;
 namespace Veterinaria.ModelLayer
 {
     /// <summary>
-    /// Clase Model base - Equivalente a Model.php
     /// Implementa el patrón Active Record como en Laravel Eloquent
     /// </summary>
     public abstract class Model<T> where T : Model<T>, new()
     {
-        // Propiedades protegidas equivalentes a las de PHP
         protected virtual string Table { get; set; } = "";
         protected virtual string PrimaryKey { get; set; } = "id";
         protected virtual string[] Fillable { get; set; } = Array.Empty<string>();
@@ -20,7 +18,6 @@ namespace Veterinaria.ModelLayer
         protected virtual bool Timestamps { get; set; } = true;
         protected virtual bool SoftDeletes { get; set; } = false;
 
-        // Propiedades privadas equivalentes a las de PHP
         private Dictionary<string, object?> _attributes = new Dictionary<string, object?>();
         private Dictionary<string, object?> _original = new Dictionary<string, object?>();
         private bool _exists = false;
@@ -36,33 +33,26 @@ namespace Veterinaria.ModelLayer
 
         /// <summary>
         /// Llena el modelo con atributos
-        /// Equivalente a fill() en PHP
         /// </summary>
         public T Fill(Dictionary<string, object?> attributes)
         {
+            // Determinar si es hidratación desde BD o asignación manual
             bool isHydrating = attributes.ContainsKey(PrimaryKey);
 
-            if (isHydrating)
+            foreach (var attr in attributes)
             {
-                // Hidratar desde base de datos
-                foreach (var attr in attributes)
+                if (isHydrating || Fillable.Contains(attr.Key))
                 {
                     _attributes[attr.Key] = attr.Value;
                     SetProperty(attr.Key, attr.Value);
                 }
-                _exists = true;
             }
-            else
+
+            if (isHydrating)
             {
-                // Llenar solo campos fillable
-                foreach (var attr in attributes)
-                {
-                    if (Fillable.Contains(attr.Key))
-                    {
-                        _attributes[attr.Key] = attr.Value;
-                        SetProperty(attr.Key, attr.Value);
-                    }
-                }
+                _exists = true;
+                // Guardar estado original para detectar cambios
+                _original = new Dictionary<string, object?>(_attributes);
             }
 
             // Manejar timestamps para nuevos registros
@@ -77,7 +67,6 @@ namespace Veterinaria.ModelLayer
 
         /// <summary>
         /// Guarda el modelo en la base de datos
-        /// Equivalente a save() en PHP
         /// </summary>
         public T Save()
         {
@@ -93,7 +82,6 @@ namespace Veterinaria.ModelLayer
 
         /// <summary>
         /// Realiza INSERT en la base de datos
-        /// Equivalente a performInsert() en PHP
         /// </summary>
         private T PerformInsert(Database db)
         {
@@ -127,7 +115,6 @@ namespace Veterinaria.ModelLayer
 
         /// <summary>
         /// Realiza UPDATE en la base de datos
-        /// Equivalente a performUpdate() en PHP
         /// </summary>
         private T PerformUpdate(Database db)
         {
@@ -159,7 +146,6 @@ namespace Veterinaria.ModelLayer
 
         /// <summary>
         /// Elimina el registro
-        /// Equivalente a delete() en PHP
         /// </summary>
         public bool Delete()
         {
@@ -192,16 +178,32 @@ namespace Veterinaria.ModelLayer
 
         /// <summary>
         /// Obtiene la clave primaria del modelo
-        /// Equivalente a getKey() en PHP
         /// </summary>
         public object? GetKey()
         {
-            return _attributes.GetValueOrDefault(PrimaryKey);
+            // Primero intentar obtener de los atributos
+            var keyFromAttributes = _attributes.GetValueOrDefault(PrimaryKey);
+            if (keyFromAttributes != null)
+                return keyFromAttributes;
+
+            // Si no está en atributos, intentar obtener de la propiedad
+            var idProperty = typeof(T).GetProperty("Id");
+            if (idProperty != null)
+            {
+                var idValue = idProperty.GetValue(this);
+                if (idValue != null && !idValue.Equals(0))
+                {
+                    // Actualizar los atributos con el valor encontrado
+                    _attributes[PrimaryKey] = idValue;
+                    return idValue;
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
         /// Obtiene los atributos para guardar
-        /// Equivalente a getAttributesForSave() en PHP
         /// </summary>
         private Dictionary<string, object?> GetAttributesForSave()
         {
@@ -219,7 +221,6 @@ namespace Veterinaria.ModelLayer
             return attributes;
         }
 
-        // Métodos estáticos equivalentes a los de PHP
         public static QueryBuilder Query()
         {
             var instance = new T();
@@ -253,6 +254,14 @@ namespace Veterinaria.ModelLayer
         {
             var instance = new T();
             var result = Query().Where(instance.PrimaryKey, id).First();
+            
+            // Si encontramos un resultado, marcarlo como existente
+            if (result is T model)
+            {
+                model.MarkAsExisting();
+                return model;
+            }
+            
             return result as T;
         }
 
@@ -391,6 +400,33 @@ namespace Veterinaria.ModelLayer
         public string[] GetFillable()
         {
             return Fillable;
+        }
+
+        /// <summary>
+        /// Marca el modelo como existente en la base de datos
+        /// </summary>
+        public T MarkAsExisting()
+        {
+            _exists = true;
+            // Asegurarse de que el ID esté en los atributos
+            var idProperty = typeof(T).GetProperty("Id");
+            if (idProperty != null)
+            {
+                var idValue = idProperty.GetValue(this);
+                if (idValue != null)
+                {
+                    _attributes[PrimaryKey] = idValue;
+                }
+            }
+            return (T)this;
+        }
+
+        /// <summary>
+        /// Verifica si el modelo existe en la base de datos
+        /// </summary>
+        public bool Exists()
+        {
+            return _exists;
         }
     }
 }

@@ -274,6 +274,16 @@ namespace Veterinaria.DataLayer.QueryBuilder
                 }
             }
 
+            // Marcar el modelo como existente ya que viene de la base de datos
+            if (_modelType != null)
+            {
+                var markMethod = _modelType.GetMethod("MarkAsExisting");
+                if (markMethod != null)
+                {
+                    markMethod.Invoke(instance, null);
+                }
+            }
+
             return instance!;
         }
 
