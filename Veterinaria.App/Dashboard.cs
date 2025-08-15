@@ -2,6 +2,7 @@ using Veterinaria.BusinessLayer.Controllers;
 using Veterinaria.App.Navigation;
 using Veterinaria.App.Views.Cliente;
 using Veterinaria.App.Views.Mascota;
+using Veterinaria.App.Views.Producto;
 
 namespace Veterinaria.App
 {
@@ -137,6 +138,10 @@ namespace Veterinaria.App
                     
                     case "mascota":
                         ManejarNavegacionMascota(viewType, data);
+                        break;
+                    
+                    case "producto":
+                        ManejarNavegacionProducto(viewType, data);
                         break;
                     
                     case "venta":
@@ -430,9 +435,18 @@ namespace Veterinaria.App
 
         private void BtnProductos_Click(object? sender, EventArgs e)
         {
-            // TODO: Implementar formulario de productos
-            MessageBox.Show("Módulo de Productos - Próximamente", "Información", 
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                // Navegar al módulo de productos
+                var productoIndexView = new ProductoIndexView();
+                ConfigurarEventosProductoIndex(productoIndexView);
+                _navigationManager?.NavigateTo("Producto", ViewType.Index, productoIndexView, null);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al abrir módulo de productos: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void BtnReportes_Click(object? sender, EventArgs e)
@@ -718,6 +732,237 @@ namespace Veterinaria.App
             catch (Exception ex)
             {
                 MessageBox.Show($"Error al eliminar mascota: {ex.Message}", "Error",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        /// <summary>
+        /// Maneja la navegación específica del módulo de Productos
+        /// </summary>
+        private void ManejarNavegacionProducto(ViewType viewType, object? data)
+        {
+            UserControl? vista = null;
+
+            switch (viewType)
+            {
+                case ViewType.Index:
+                    var indexView = new ProductoIndexView();
+                    
+                    // Configurar eventos usando una lambda que mantenga la referencia
+                    indexView.NuevoProducto += () => 
+                    {
+                        var createView = new ProductoFormView();
+                        createView.ConfigurarParaNuevo();
+                        
+                        // Configurar eventos del formulario
+                        createView.ProductoGuardado += () =>
+                        {
+                            // Crear nueva instancia del índice y navegar
+                            var newIndexView = new ProductoIndexView();
+                            ConfigurarEventosProductoIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        createView.CancelarOperacion += () =>
+                        {
+                            // Crear nueva instancia del índice y navegar
+                            var newIndexView = new ProductoIndexView();
+                            ConfigurarEventosProductoIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        _navigationManager?.NavigateTo("Producto", ViewType.Create, createView, null);
+                    };
+                    
+                    indexView.EditarProducto += (id) => 
+                    {
+                        var producto = ProductoController.GetById(id);
+                        if (producto != null)
+                        {
+                            var editView = new ProductoFormView();
+                            editView.ConfigurarParaEdicion(producto);
+                            
+                            // Configurar eventos del formulario
+                            editView.ProductoGuardado += () =>
+                            {
+                                // Crear nueva instancia del índice y navegar
+                                var newIndexView = new ProductoIndexView();
+                                ConfigurarEventosProductoIndex(newIndexView);
+                                _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                            };
+                            
+                            editView.CancelarOperacion += () =>
+                            {
+                                // Crear nueva instancia del índice y navegar
+                                var newIndexView = new ProductoIndexView();
+                                ConfigurarEventosProductoIndex(newIndexView);
+                                _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                            };
+                            
+                            _navigationManager?.NavigateTo("Producto", ViewType.Edit, editView, producto);
+                        }
+                    };
+                    
+                    indexView.EliminarProducto += (id) => ConfirmarEliminarProducto(id);
+                    
+                    vista = indexView;
+                    break;
+
+                case ViewType.Create:
+                    var createFormView = new ProductoFormView();
+                    createFormView.ConfigurarParaNuevo();
+                    
+                    // Configurar eventos
+                    createFormView.ProductoGuardado += () =>
+                    {
+                        var newIndexView = new ProductoIndexView();
+                        ConfigurarEventosProductoIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    createFormView.CancelarOperacion += () =>
+                    {
+                        var newIndexView = new ProductoIndexView();
+                        ConfigurarEventosProductoIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    vista = createFormView;
+                    break;
+
+                case ViewType.Edit:
+                    if (data is ModelLayer.Producto producto)
+                    {
+                        var editFormView = new ProductoFormView();
+                        editFormView.ConfigurarParaEdicion(producto);
+                        
+                        // Configurar eventos
+                        editFormView.ProductoGuardado += () =>
+                        {
+                            var newIndexView = new ProductoIndexView();
+                            ConfigurarEventosProductoIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        editFormView.CancelarOperacion += () =>
+                        {
+                            var newIndexView = new ProductoIndexView();
+                            ConfigurarEventosProductoIndex(newIndexView);
+                            _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                        };
+                        
+                        vista = editFormView;
+                    }
+                    break;
+            }
+
+            if (vista != null && _navigationManager != null)
+            {
+                _navigationManager.NavigateTo("Producto", viewType, vista, data);
+            }
+        }
+
+        /// <summary>
+        /// Configura los eventos comunes para las vistas de índice de producto
+        /// </summary>
+        private void ConfigurarEventosProductoIndex(ProductoIndexView indexView)
+        {
+            indexView.NuevoProducto += () =>
+            {
+                var createView = new ProductoFormView();
+                createView.ConfigurarParaNuevo();
+                
+                createView.ProductoGuardado += () =>
+                {
+                    var newIndexView = new ProductoIndexView();
+                    ConfigurarEventosProductoIndex(newIndexView);
+                    _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                };
+                
+                createView.CancelarOperacion += () =>
+                {
+                    var newIndexView = new ProductoIndexView();
+                    ConfigurarEventosProductoIndex(newIndexView);
+                    _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                };
+                
+                _navigationManager?.NavigateTo("Producto", ViewType.Create, createView, null);
+            };
+            
+            indexView.EditarProducto += (id) =>
+            {
+                var producto = ProductoController.GetById(id);
+                if (producto != null)
+                {
+                    var editView = new ProductoFormView();
+                    editView.ConfigurarParaEdicion(producto);
+                    
+                    editView.ProductoGuardado += () =>
+                    {
+                        var newIndexView = new ProductoIndexView();
+                        ConfigurarEventosProductoIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    editView.CancelarOperacion += () =>
+                    {
+                        var newIndexView = new ProductoIndexView();
+                        ConfigurarEventosProductoIndex(newIndexView);
+                        _navigationManager?.NavigateTo("Producto", ViewType.Index, newIndexView, null);
+                    };
+                    
+                    _navigationManager?.NavigateTo("Producto", ViewType.Edit, editView, producto);
+                }
+            };
+            
+            indexView.EliminarProducto += (id) => ConfirmarEliminarProducto(id);
+        }
+
+        /// <summary>
+        /// Confirma y ejecuta la eliminación de un producto
+        /// </summary>
+        private void ConfirmarEliminarProducto(int productoId)
+        {
+            try
+            {
+                var producto = ProductoController.GetById(productoId);
+                if (producto == null)
+                {
+                    MessageBox.Show("Producto no encontrado", "Error",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                var result = MessageBox.Show(
+                    $"¿Está seguro que desea eliminar el producto '{producto.Nombre}'?\n\n" +
+                    "Esta acción no se puede deshacer.",
+                    "Confirmar Eliminación",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question);
+
+                if (result == DialogResult.Yes)
+                {
+                    var (success, message) = ProductoController.Delete(productoId);
+                    
+                    if (success)
+                    {
+                        MessageBox.Show(message, "Éxito",
+                            MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        
+                        // Refrescar la vista actual si es el índice de productos
+                        var currentView = panelContent.Controls.OfType<ProductoIndexView>().FirstOrDefault();
+                        currentView?.RefrescarVista();
+                    }
+                    else
+                    {
+                        MessageBox.Show(message, "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al eliminar producto: {ex.Message}", "Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
