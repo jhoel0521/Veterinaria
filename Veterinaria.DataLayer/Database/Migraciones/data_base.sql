@@ -1,16 +1,14 @@
-﻿-- Crear la base de datos
+-- Crear la base de datos
 USE master;
 GO
 
 -- Eliminar la base de datos si existe (opcional - descomenta si necesitas recrear)
-/*
 IF EXISTS (SELECT name FROM sys.databases WHERE name = 'SistemaVeterinario')
 BEGIN
     ALTER DATABASE SistemaVeterinario SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
     DROP DATABASE SistemaVeterinario;
 END
 GO
-*/
 
 -- Crear nueva base de datos
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'SistemaVeterinario')
@@ -19,288 +17,458 @@ BEGIN
 END
 GO
 
--- Usar la base de datos
 USE SistemaVeterinario;
 GO
 
--- ==========================================
--- TABLA PERSONA (USUARIOS DEL SISTEMA)
--- ==========================================
-
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Persona' AND xtype='U')
-BEGIN
-    CREATE TABLE Persona (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        nombre NVARCHAR(100) NOT NULL,
-        apellido NVARCHAR(100) NOT NULL,
-        email NVARCHAR(150) NOT NULL UNIQUE,
-        usuario NVARCHAR(50) NOT NULL UNIQUE,
-        contrasena NVARCHAR(255) NOT NULL,
-        telefono NVARCHAR(20),
-        direccion NVARCHAR(255),
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE(),
-        activo BIT DEFAULT 1
-    );
-    PRINT 'Tabla Persona creada exitosamente.';
-END
-ELSE
-BEGIN
-    PRINT 'Tabla Persona ya existe.';
-END
+-- PERSONAS
+CREATE TABLE persona (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    tipo NVARCHAR(255) NOT NULL CHECK (tipo IN ('Fisica', 'Juridica')),
+    email NVARCHAR(255),
+    direccion NVARCHAR(255),
+    telefono NVARCHAR(255),
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE()
+);
 GO
 
--- ==========================================
--- TABLA PRODUCTOS/INVENTARIO
--- ==========================================
-
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Productos' AND xtype='U')
-BEGIN
-    CREATE TABLE Productos (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        codigo NVARCHAR(20) NOT NULL UNIQUE,
-        nombre NVARCHAR(200) NOT NULL,
-        descripcion NVARCHAR(500),
-        precio DECIMAL(10,2) NOT NULL,
-        stock INT NOT NULL DEFAULT 0,
-        stock_minimo INT DEFAULT 0,
-        categoria NVARCHAR(100),
-        proveedor NVARCHAR(200),
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE(),
-        activo BIT DEFAULT 1
-    );
-    PRINT 'Tabla Productos creada exitosamente.';
-END
-ELSE
-BEGIN
-    PRINT 'Tabla Productos ya existe.';
-END
+CREATE TABLE persona_fisica (
+    id INT PRIMARY KEY,
+    ci VARCHAR(15),
+    nombre VARCHAR(255),
+    apellido VARCHAR(255),
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (id) REFERENCES persona(id) ON DELETE CASCADE
+);
 GO
 
--- ==========================================
--- TABLA CLIENTES
--- ==========================================
-
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Clientes' AND xtype='U')
-BEGIN
-    CREATE TABLE Clientes (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        nombre NVARCHAR(100) NOT NULL,
-        apellido NVARCHAR(100) NOT NULL,
-        telefono NVARCHAR(20),
-        email NVARCHAR(150),
-        direccion NVARCHAR(255),
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE(),
-        activo BIT DEFAULT 1
-    );
-    PRINT 'Tabla Clientes creada exitosamente.';
-END
-ELSE
-BEGIN
-    PRINT 'Tabla Clientes ya existe.';
-END
+CREATE TABLE persona_juridica (
+    id INT PRIMARY KEY,
+    razon_social VARCHAR(255),
+    nit VARCHAR(20),
+    encargado_nombre VARCHAR(255),
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (id) REFERENCES persona(id) ON DELETE CASCADE
+);
 GO
 
--- ==========================================
--- TABLA MASCOTAS
--- ==========================================
-
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Mascotas' AND xtype='U')
-BEGIN
-    CREATE TABLE Mascotas (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        cliente_id INT,
-        nombre NVARCHAR(100) NOT NULL,
-        especie NVARCHAR(50) NOT NULL,
-        raza NVARCHAR(100),
-        edad INT,
-        peso DECIMAL(5,2),
-        color NVARCHAR(50),
-        observaciones NVARCHAR(500),
-        created_at DATETIME DEFAULT GETDATE(),
-        updated_at DATETIME DEFAULT GETDATE(),
-        activo BIT DEFAULT 1,
-        CONSTRAINT FK_Mascotas_Clientes FOREIGN KEY (cliente_id) REFERENCES Clientes(id)
-    );
-    PRINT 'Tabla Mascotas creada exitosamente.';
-END
-ELSE
-BEGIN
-    PRINT 'Tabla Mascotas ya existe.';
-END
+-- ANIMALES
+CREATE TABLE animal (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    tipo NVARCHAR(255),
+    nombre NVARCHAR(255),
+    fecha_nacimiento DATE,
+    persona_id INT,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (persona_id) REFERENCES persona(id)
+);
 GO
 
--- ==========================================
--- TABLA VENTAS
--- ==========================================
-
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='Ventas' AND xtype='U')
-BEGIN
-    CREATE TABLE Ventas (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        cliente_id INT,
-        usuario_id INT,
-        fecha_venta DATETIME DEFAULT GETDATE(),
-        subtotal DECIMAL(10,2) NOT NULL,
-        impuesto DECIMAL(10,2) DEFAULT 0,
-        total DECIMAL(10,2) NOT NULL,
-        estado NVARCHAR(20) DEFAULT 'Completada',
-        CONSTRAINT FK_Ventas_Clientes FOREIGN KEY (cliente_id) REFERENCES Clientes(id),
-        CONSTRAINT FK_Ventas_Persona FOREIGN KEY (usuario_id) REFERENCES Persona(id)
-    );
-    PRINT 'Tabla Ventas creada exitosamente.';
-END
-ELSE
-BEGIN
-    PRINT 'Tabla Ventas ya existe.';
-END
+-- HISTÓRICO CLÍNICO
+CREATE TABLE historico (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    notas_importantes TEXT,
+    animal_id INT,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (animal_id) REFERENCES animal(id)
+);
 GO
 
--- ==========================================
--- TABLA DETALLE DE VENTAS
--- ==========================================
-
-IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='DetalleVenta' AND xtype='U')
-BEGIN
-    CREATE TABLE DetalleVenta (
-        id INT IDENTITY(1,1) PRIMARY KEY,
-        venta_id INT,
-        producto_id INT,
-        cantidad INT NOT NULL,
-        precio_unitario DECIMAL(10,2) NOT NULL,
-        subtotal DECIMAL(10,2) NOT NULL,
-        CONSTRAINT FK_DetalleVenta_Ventas FOREIGN KEY (venta_id) REFERENCES Ventas(id),
-        CONSTRAINT FK_DetalleVenta_Productos FOREIGN KEY (producto_id) REFERENCES Productos(id)
-    );
-    PRINT 'Tabla DetalleVenta creada exitosamente.';
-END
-ELSE
-BEGIN
-    PRINT 'Tabla DetalleVenta ya existe.';
-END
+CREATE TABLE detalle_historico (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    tipo NVARCHAR(255) NOT NULL CHECK (tipo IN ('Diagnóstico', 'Tratamiento', 'Control', 'Vacunación', 'Cirugía')),
+    historico_id INT,
+    referencia VARCHAR(15),
+    observaciones TEXT,
+    tratamiento TEXT,
+    fecha_evento DATE DEFAULT GETDATE(),
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (historico_id) REFERENCES historico(id)
+);
 GO
 
--- ==========================================
--- DATOS DE PRUEBA - USUARIOS
--- ==========================================
+-- PERSONAL
+CREATE TABLE personal (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    fecha_contratacion DATE,
+    nombre VARCHAR(50),
+    apellido VARCHAR(50),
+    email VARCHAR(100),
+    usuario VARCHAR(50),
+    contrasena VARCHAR(255),
+    telefono VARCHAR(20),
+    direccion VARCHAR(120),
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE()
+);
+GO
 
--- Verificar si ya existen usuarios
-IF NOT EXISTS (SELECT * FROM Persona WHERE usuario = 'admin')
+CREATE TABLE personal_rol (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    personal_id INT,
+    rol NVARCHAR(255) NOT NULL CHECK (rol IN ('Veterinario', 'Auxiliar', 'Recepcionista', 'Administrador')),
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (personal_id) REFERENCES personal(id) ON DELETE CASCADE
+);
+GO
+
+-- PRODUCTOS
+CREATE TABLE categoria (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    nombre NVARCHAR(255),
+    requiere_diagnostico BIT DEFAULT 0,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE()
+);
+GO
+
+CREATE TABLE producto (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    nombre NVARCHAR(255),
+    precio DECIMAL(10,2),
+    requiere_diagnostico BIT DEFAULT 1,
+    categoria_id INT,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (categoria_id) REFERENCES categoria(id)
+);
+GO
+
+-- FACTURACIÓN
+CREATE TABLE factura (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    ref_factura NVARCHAR(255) UNIQUE,
+    fecha DATE DEFAULT GETDATE(),
+    persona_id INT,
+    total DECIMAL(10,2) DEFAULT 0,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (persona_id) REFERENCES persona(id)
+);
+GO
+
+CREATE TABLE detalle_factura (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    factura_id INT,
+    producto_id INT,
+    cantidad INT,
+    precio_unitario DECIMAL(10,2),
+    subtotal DECIMAL(10,2) DEFAULT 0,
+    diagnostico_verificado BIT DEFAULT 0,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (factura_id) REFERENCES factura(id) ON DELETE CASCADE,
+    FOREIGN KEY (producto_id) REFERENCES producto(id)
+);
+GO
+
+-- DIAGNÓSTICO
+CREATE TABLE diagnostico (
+    id INT PRIMARY KEY IDENTITY(1,1),
+    descripcion TEXT,
+    factura_id INT,
+    precio DECIMAL(10,2) DEFAULT 0,
+    personal_id INT,
+    ref_detalle_historico_id INT UNIQUE,
+    created_at DATETIME DEFAULT GETDATE(),
+    updated_at DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (factura_id) REFERENCES factura(id),
+    FOREIGN KEY (personal_id) REFERENCES personal(id),
+    FOREIGN KEY (ref_detalle_historico_id) REFERENCES detalle_historico(id)
+);
+GO
+
+-- Crear índices para mejorar rendimiento
+CREATE INDEX idx_animal_persona ON animal(persona_id);
+CREATE INDEX idx_detalle_historico_historico ON detalle_historico(historico_id);
+CREATE INDEX idx_diagnostico_detalle ON diagnostico(ref_detalle_historico_id);
+CREATE INDEX idx_producto_categoria ON producto(categoria_id);
+CREATE INDEX idx_factura_persona ON factura(persona_id);
+CREATE INDEX idx_detalle_factura_factura ON detalle_factura(factura_id);
+GO
+
+-- Crear triggers
+CREATE TRIGGER trg_calcular_subtotal
+ON detalle_factura
+AFTER INSERT, UPDATE
+AS
 BEGIN
-    INSERT INTO Persona (nombre, apellido, email, usuario, contrasena, telefono, direccion)
-    VALUES 
-        ('Admin', 'Sistema', 'admin@zoofipets.com', 'admin', '123456', '555-0001', 'Oficina Principal'),
-        ('Juan', 'Pérez', 'juan@email.com', 'jperez', '123456', '555-0002', 'Calle 123'),
-        ('María', 'González', 'maria@email.com', 'mgonzalez', '123456', '555-0003', 'Avenida 456'),
-        ('Carlos', 'Veterinario', 'carlos@zoofipets.com', 'cveterinario', '123456', '555-0004', 'Clínica Principal');
+    SET NOCOUNT ON;
     
-    PRINT 'Usuarios de prueba insertados exitosamente.';
+    UPDATE df
+    SET df.subtotal = i.cantidad * i.precio_unitario
+    FROM detalle_factura df
+    INNER JOIN inserted i ON df.id = i.id
+    WHERE df.id = i.id;
 END
-ELSE
+GO
+
+CREATE TRIGGER trg_actualizar_total_factura
+ON detalle_factura
+AFTER INSERT, UPDATE, DELETE
+AS
 BEGIN
-    PRINT 'Usuarios de prueba ya existen.';
+    SET NOCOUNT ON;
+    
+    DECLARE @factura_id INT;
+    
+    -- Obtener factura_id de los registros afectados
+    IF EXISTS (SELECT * FROM inserted)
+        SELECT @factura_id = factura_id FROM inserted;
+    ELSE
+        SELECT @factura_id = factura_id FROM deleted;
+    
+    -- Actualizar total de la factura
+    UPDATE f
+    SET f.total = COALESCE((
+        SELECT SUM(df.subtotal)
+        FROM detalle_factura df
+        WHERE df.factura_id = @factura_id
+    ), 0)
+    FROM factura f
+    WHERE f.id = @factura_id;
+END
+GO
+
+CREATE TRIGGER trg_validar_producto_critico
+ON detalle_factura
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @requiere_diagnostico BIT;
+    DECLARE @diagnostico_verificado BIT;
+    DECLARE @producto_id INT;
+    
+    SELECT 
+        @requiere_diagnostico = p.requiere_diagnostico,
+        @diagnostico_verificado = i.diagnostico_verificado,
+        @producto_id = i.producto_id
+    FROM inserted i
+    INNER JOIN producto p ON p.id = i.producto_id;
+    
+    IF @requiere_diagnostico = 1 AND @diagnostico_verificado = 0
+    BEGIN
+        RAISERROR('Productos que requieren diagnóstico deben estar verificados.', 16, 1);
+        ROLLBACK TRANSACTION;
+        RETURN;
+    END
 END
 GO
 
 -- ==========================================
--- DATOS DE PRUEBA - PRODUCTOS
+-- DATOS DE PRUEBA - PERSONAL (USUARIOS DEL SISTEMA)
 -- ==========================================
 
-IF NOT EXISTS (SELECT * FROM Productos WHERE codigo = 'ALIM001')
+-- Insertar personal del sistema
+IF NOT EXISTS (SELECT * FROM personal WHERE usuario = 'admin')
 BEGIN
-    INSERT INTO Productos (codigo, nombre, descripcion, precio, stock, stock_minimo, categoria, proveedor)
+    INSERT INTO personal (fecha_contratacion, nombre, apellido, email, usuario, contrasena, telefono, direccion)
     VALUES 
-        ('ALIM001', 'Alimento para Perros Premium', 'Alimento balanceado para perros adultos', 25.50, 100, 10, 'Alimentos', 'Proveedor A'),
-        ('ALIM002', 'Alimento para Gatos', 'Alimento balanceado para gatos', 22.00, 75, 15, 'Alimentos', 'Proveedor A'),
-        ('ALIM003', 'Alimento para Cachorros', 'Alimento especial para cachorros', 28.00, 50, 8, 'Alimentos', 'Proveedor A'),
-        ('JUG001', 'Pelota de Goma', 'Juguete para mascotas pequeñas', 8.50, 50, 5, 'Juguetes', 'Proveedor B'),
-        ('JUG002', 'Cuerda para Jugar', 'Cuerda resistente para perros', 12.75, 30, 5, 'Juguetes', 'Proveedor B'),
-        ('JUG003', 'Ratón de Juguete', 'Juguete para gatos', 6.25, 40, 8, 'Juguetes', 'Proveedor B'),
-        ('MED001', 'Vitaminas para Mascotas', 'Suplemento vitamínico', 15.75, 30, 5, 'Medicamentos', 'Proveedor C'),
-        ('MED002', 'Antiparasitario', 'Tratamiento antiparasitario', 18.50, 25, 3, 'Medicamentos', 'Proveedor C'),
-        ('ACC001', 'Collar para Perro', 'Collar ajustable', 14.00, 35, 5, 'Accesorios', 'Proveedor D'),
-        ('ACC002', 'Correa Retráctil', 'Correa de 5 metros', 22.50, 20, 3, 'Accesorios', 'Proveedor D');
+        ('2024-01-15', 'Admin', 'Sistema', 'admin@zoofipets.com', 'admin', '123456', '555-0001', 'Oficina Principal'),
+        ('2024-02-01', 'Juan', 'Pérez', 'juan@email.com', 'jperez', '123456', '555-0002', 'Calle 123'),
+        ('2024-02-15', 'María', 'González', 'maria@email.com', 'mgonzalez', '123456', '555-0003', 'Avenida 456'),
+        ('2024-03-01', 'Carlos', 'Veterinario', 'carlos@zoofipets.com', 'cveterinario', '123456', '555-0004', 'Clínica Principal');
+    
+    PRINT 'Personal de prueba insertado exitosamente.';
+END
+GO
+
+-- Asignar roles al personal
+IF NOT EXISTS (SELECT * FROM personal_rol pr INNER JOIN personal p ON pr.personal_id = p.id WHERE p.usuario = 'admin')
+BEGIN
+    INSERT INTO personal_rol (personal_id, rol)
+    SELECT p.id, 'Administrador'
+    FROM personal p WHERE p.usuario = 'admin';
+    
+    INSERT INTO personal_rol (personal_id, rol)
+    SELECT p.id, 'Recepcionista'
+    FROM personal p WHERE p.usuario = 'jperez';
+    
+    INSERT INTO personal_rol (personal_id, rol)
+    SELECT p.id, 'Auxiliar'
+    FROM personal p WHERE p.usuario = 'mgonzalez';
+    
+    INSERT INTO personal_rol (personal_id, rol)
+    SELECT p.id, 'Veterinario'
+    FROM personal p WHERE p.usuario = 'cveterinario';
+    
+    PRINT 'Roles de personal asignados exitosamente.';
+END
+GO
+
+-- ==========================================
+-- DATOS DE PRUEBA - PERSONAS FÍSICAS (CLIENTES)
+-- ==========================================
+
+IF NOT EXISTS (SELECT * FROM persona p INNER JOIN persona_fisica pf ON p.id = pf.id WHERE pf.ci = '12345678')
+BEGIN
+    -- Insertar personas base
+    INSERT INTO persona (tipo, email, direccion, telefono)
+    VALUES 
+        ('Fisica', 'ana@email.com', 'Calle 10 #123', '555-1001'),
+        ('Fisica', 'carlos@email.com', 'Avenida 20 #456', '555-1002'),
+        ('Fisica', 'sofia@email.com', 'Carrera 30 #789', '555-1003'),
+        ('Fisica', 'pedro@email.com', 'Calle 40 #321', '555-1004'),
+        ('Fisica', 'laura@email.com', 'Avenida 50 #654', '555-1005');
+    
+    -- Obtener los IDs insertados e insertar los datos específicos de personas físicas
+    DECLARE @persona_id1 INT, @persona_id2 INT, @persona_id3 INT, @persona_id4 INT, @persona_id5 INT;
+    
+    SELECT @persona_id1 = id FROM persona WHERE email = 'ana@email.com';
+    SELECT @persona_id2 = id FROM persona WHERE email = 'carlos@email.com';
+    SELECT @persona_id3 = id FROM persona WHERE email = 'sofia@email.com';
+    SELECT @persona_id4 = id FROM persona WHERE email = 'pedro@email.com';
+    SELECT @persona_id5 = id FROM persona WHERE email = 'laura@email.com';
+    
+    INSERT INTO persona_fisica (id, ci, nombre, apellido)
+    VALUES 
+        (@persona_id1, '12345678', 'Ana', 'Martínez'),
+        (@persona_id2, '23456789', 'Carlos', 'López'),
+        (@persona_id3, '34567890', 'Sofia', 'Rodríguez'),
+        (@persona_id4, '45678901', 'Pedro', 'Jiménez'),
+        (@persona_id5, '56789012', 'Laura', 'Fernández');
+    
+    PRINT 'Personas físicas (clientes) de prueba insertadas exitosamente.';
+END
+GO
+
+-- ==========================================
+-- DATOS DE PRUEBA - ANIMALES (MASCOTAS)
+-- ==========================================
+
+IF NOT EXISTS (SELECT * FROM animal a INNER JOIN persona p ON a.persona_id = p.id INNER JOIN persona_fisica pf ON p.id = pf.id WHERE a.nombre = 'Max' AND pf.ci = '12345678')
+BEGIN
+    DECLARE @cliente_id1 INT, @cliente_id2 INT, @cliente_id3 INT, @cliente_id4 INT, @cliente_id5 INT;
+    
+    SELECT @cliente_id1 = p.id FROM persona p INNER JOIN persona_fisica pf ON p.id = pf.id WHERE pf.ci = '12345678';
+    SELECT @cliente_id2 = p.id FROM persona p INNER JOIN persona_fisica pf ON p.id = pf.id WHERE pf.ci = '23456789';
+    SELECT @cliente_id3 = p.id FROM persona p INNER JOIN persona_fisica pf ON p.id = pf.id WHERE pf.ci = '34567890';
+    SELECT @cliente_id4 = p.id FROM persona p INNER JOIN persona_fisica pf ON p.id = pf.id WHERE pf.ci = '45678901';
+    SELECT @cliente_id5 = p.id FROM persona p INNER JOIN persona_fisica pf ON p.id = pf.id WHERE pf.ci = '56789012';
+    
+    INSERT INTO animal (tipo, nombre, fecha_nacimiento, persona_id)
+    VALUES 
+        ('Perro - Labrador', 'Max', '2021-03-15', @cliente_id1),
+        ('Gato - Persa', 'Luna', '2022-06-20', @cliente_id1),
+        ('Perro - Pastor Alemán', 'Rocky', '2019-11-10', @cliente_id2),
+        ('Gato - Siamés', 'Mimi', '2023-01-25', @cliente_id3),
+        ('Perro - Golden Retriever', 'Buddy', '2020-08-05', @cliente_id4),
+        ('Gato - Común', 'Whiskers', '2021-12-12', @cliente_id5);
+    
+    PRINT 'Animales (mascotas) de prueba insertados exitosamente.';
+END
+GO
+
+-- ==========================================
+-- DATOS DE PRUEBA - CATEGORÍAS Y PRODUCTOS
+-- ==========================================
+
+IF NOT EXISTS (SELECT * FROM categoria WHERE nombre = 'Alimentos')
+BEGIN
+    INSERT INTO categoria (nombre, requiere_diagnostico)
+    VALUES 
+        ('Alimentos', 0),
+        ('Juguetes', 0),
+        ('Medicamentos', 1),
+        ('Accesorios', 0);
+    
+    PRINT 'Categorías de productos insertadas exitosamente.';
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM producto WHERE nombre = 'Alimento para Perros Premium')
+BEGIN
+    DECLARE @cat_alimentos INT, @cat_juguetes INT, @cat_medicamentos INT, @cat_accesorios INT;
+    
+    SELECT @cat_alimentos = id FROM categoria WHERE nombre = 'Alimentos';
+    SELECT @cat_juguetes = id FROM categoria WHERE nombre = 'Juguetes';
+    SELECT @cat_medicamentos = id FROM categoria WHERE nombre = 'Medicamentos';
+    SELECT @cat_accesorios = id FROM categoria WHERE nombre = 'Accesorios';
+    
+    INSERT INTO producto (nombre, precio, requiere_diagnostico, categoria_id)
+    VALUES 
+        ('Alimento para Perros Premium', 25.50, 0, @cat_alimentos),
+        ('Alimento para Gatos', 22.00, 0, @cat_alimentos),
+        ('Alimento para Cachorros', 28.00, 0, @cat_alimentos),
+        ('Pelota de Goma', 8.50, 0, @cat_juguetes),
+        ('Cuerda para Jugar', 12.75, 0, @cat_juguetes),
+        ('Ratón de Juguete', 6.25, 0, @cat_juguetes),
+        ('Vitaminas para Mascotas', 15.75, 1, @cat_medicamentos),
+        ('Antiparasitario', 18.50, 1, @cat_medicamentos),
+        ('Collar para Perro', 14.00, 0, @cat_accesorios),
+        ('Correa Retráctil', 22.50, 0, @cat_accesorios);
     
     PRINT 'Productos de prueba insertados exitosamente.';
 END
-ELSE
-BEGIN
-    PRINT 'Productos de prueba ya existen.';
-END
 GO
 
 -- ==========================================
--- DATOS DE PRUEBA - CLIENTES
+-- PROCEDIMIENTOS ALMACENADOS
 -- ==========================================
 
-IF NOT EXISTS (SELECT * FROM Clientes WHERE email = 'ana@email.com')
+-- Crear procedimientos adicionales útiles
+CREATE PROCEDURE sp_registrar_persona_fisica
+    @tipo NVARCHAR(255),
+    @email NVARCHAR(255),
+    @direccion NVARCHAR(255),
+    @telefono NVARCHAR(255),
+    @ci VARCHAR(15),
+    @nombre VARCHAR(255),
+    @apellido VARCHAR(255)
+AS
 BEGIN
-    INSERT INTO Clientes (nombre, apellido, telefono, email, direccion)
-    VALUES 
-        ('Ana', 'Martínez', '555-1001', 'ana@email.com', 'Calle 10 #123'),
-        ('Carlos', 'López', '555-1002', 'carlos@email.com', 'Avenida 20 #456'),
-        ('Sofia', 'Rodríguez', '555-1003', 'sofia@email.com', 'Carrera 30 #789'),
-        ('Pedro', 'Jiménez', '555-1004', 'pedro@email.com', 'Calle 40 #321'),
-        ('Laura', 'Fernández', '555-1005', 'laura@email.com', 'Avenida 50 #654');
+    BEGIN TRANSACTION;
     
-    PRINT 'Clientes de prueba insertados exitosamente.';
-END
-ELSE
-BEGIN
-    PRINT 'Clientes de prueba ya existen.';
-END
-GO
-
--- ==========================================
--- DATOS DE PRUEBA - MASCOTAS
--- ==========================================
-
-IF NOT EXISTS (SELECT * FROM Mascotas WHERE nombre = 'Max')
-BEGIN
-    INSERT INTO Mascotas (cliente_id, nombre, especie, raza, edad, peso, color, observaciones)
-    VALUES 
-        (1, 'Max', 'Perro', 'Labrador', 3, 25.5, 'Dorado', 'Muy activo y juguetón'),
-        (1, 'Luna', 'Gato', 'Persa', 2, 4.2, 'Blanco', 'Tranquila, le gusta dormir'),
-        (2, 'Rocky', 'Perro', 'Pastor Alemán', 5, 30.0, 'Negro', 'Perro guardián, muy leal'),
-        (3, 'Mimi', 'Gato', 'Siamés', 1, 3.8, 'Crema', 'Joven y curiosa'),
-        (4, 'Buddy', 'Perro', 'Golden Retriever', 4, 28.2, 'Dorado', 'Excelente con niños'),
-        (5, 'Whiskers', 'Gato', 'Común', 3, 4.5, 'Gris', 'Gato rescatado, muy cariñoso');
+    INSERT INTO persona (tipo, email, direccion, telefono)
+    VALUES (@tipo, @email, @direccion, @telefono);
     
-    PRINT 'Mascotas de prueba insertadas exitosamente.';
+    DECLARE @persona_id INT = SCOPE_IDENTITY();
+    
+    INSERT INTO persona_fisica (id, ci, nombre, apellido)
+    VALUES (@persona_id, @ci, @nombre, @apellido);
+    
+    COMMIT TRANSACTION;
+    RETURN @persona_id;
 END
-ELSE
+GO
+
+CREATE PROCEDURE sp_crear_diagnostico
+    @descripcion TEXT,
+    @precio DECIMAL(10,2),
+    @personal_id INT,
+    @ref_detalle_historico_id INT,
+    @persona_id INT
+AS
 BEGIN
-    PRINT 'Mascotas de prueba ya existen.';
+    BEGIN TRANSACTION;
+    
+    -- Crear factura para el diagnóstico
+    DECLARE @ref_factura NVARCHAR(255) = 'FAC-' + CONVERT(VARCHAR(20), GETDATE(), 112) + '-' + RIGHT('0000' + CAST(ABS(CHECKSUM(NEWID())) % 10000 AS VARCHAR), 4);
+    
+    INSERT INTO factura (ref_factura, persona_id)
+    VALUES (@ref_factura, @persona_id);
+    
+    DECLARE @factura_id INT = SCOPE_IDENTITY();
+    
+    -- Insertar diagnóstico
+    INSERT INTO diagnostico (descripcion, factura_id, precio, personal_id, ref_detalle_historico_id)
+    VALUES (@descripcion, @factura_id, @precio, @personal_id, @ref_detalle_historico_id);
+    
+    -- Actualizar total de la factura
+    UPDATE factura SET total = @precio WHERE id = @factura_id;
+    
+    COMMIT TRANSACTION;
+    RETURN @factura_id;
 END
 GO
 
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Persona_Usuario')
-    CREATE NONCLUSTERED INDEX IX_Persona_Usuario ON Persona (usuario);
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Persona_Email')
-    CREATE NONCLUSTERED INDEX IX_Persona_Email ON Persona (email);
-
--- Índices para tabla Productos
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Productos_Codigo')
-    CREATE NONCLUSTERED INDEX IX_Productos_Codigo ON Productos (codigo);
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Productos_Categoria')
-    CREATE NONCLUSTERED INDEX IX_Productos_Categoria ON Productos (categoria);
-
--- Índices para tabla Ventas
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ventas_Fecha')
-    CREATE NONCLUSTERED INDEX IX_Ventas_Fecha ON Ventas (fecha_venta);
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Ventas_Cliente')
-    CREATE NONCLUSTERED INDEX IX_Ventas_Cliente ON Ventas (cliente_id);
-
-GO
-
--- Verificar tablas creadas
-SELECT 'Tabla: ' + TABLE_NAME + ' - Creada ✓' as Estado
-FROM INFORMATION_SCHEMA.TABLES 
-WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_CATALOG = 'SistemaVeterinario'
-ORDER BY TABLE_NAME;
+-- Mensaje de éxito
+PRINT 'Base de datos, objetos y datos de prueba creados exitosamente!';
