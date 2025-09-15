@@ -200,10 +200,6 @@ private static readonly string connectionString =
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abrir un Pull Request
 
-## 📝 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para más detalles.
-
 ## 📞 Contacto
 
 - **Autor**: Jhoel0521
